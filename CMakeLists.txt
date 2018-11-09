@@ -9,7 +9,10 @@ project(ar_land)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   std_msgs
+  geometry_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -102,9 +105,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES ar_land
-#  CATKIN_DEPENDS roscpp std_msgs
+  CATKIN_DEPENDS CATKIN_DEPENDS roscpp rospy std_msgs tf
 #  DEPENDS system_lib
 )
 
@@ -115,7 +118,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+ include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -133,6 +136,11 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/ar_land_node.cpp)
+add_executable(trajectory_planner_node src/trajectory_planner_node.cpp include/ar_land/trajectory_planner_node.hpp)
+target_link_libraries(trajectory_planner_node ${catkin_LIBRARIES})
+add_executable(pid_controller_node src/pid_controller_node.cpp include/ar_land/pid_controller_node.hpp include/ar_land/pid.hpp)
+target_link_libraries(pid_controller_node ${catkin_LIBRARIES})
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
