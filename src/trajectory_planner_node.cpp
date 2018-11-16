@@ -38,13 +38,13 @@ namespace tf
   }
 }
 
-trajectory_planner_node::trajectory_planner_node() {
+blind_trajectory_planner_node::blind_trajectory_planner_node() {
   // initialize topics
   ros::NodeHandle n("~");
   std::string s;
   // liest Parameter mit dem Namen (1) aus dem Parameterserver aus und speichert diese unter dem Namen (2), falls nicht gefunden nimmt default (3) an
   n.param<std::string>("T_cam_board_topic", T_cam_board_topic, "/ar_single_board/transform");
-  n.param<std::string>("T_world_goal_topic", T_world_goal_topic, "/ar_land/T_world_goal_topic");
+  n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/T_world_goal_topic");
   n.param<std::string>("world_frame_id", world_frame_id, "/world");
   n.param<std::string>("drone_frame_id", drone_frame_id, "/crazyflie/base_link");
   n.param<std::string>("goal_frame_id", goal_frame_id, "/crazyflie/goal");
@@ -52,10 +52,10 @@ trajectory_planner_node::trajectory_planner_node() {
   n.param<std::string>("cam_frame_id", cam_frame_id, "/cam");
 
   // Initialisierung von im Header deklarierten Subscribern und Publishern
-  T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &trajectory_planner_node::markerPoseCallback, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
+  T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &blind_trajectory_planner_node::markerPoseCallback, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
 
   // TODO: if there is a new controller node created, try to change topic type to StampedTransform
-  T_world_goal_pub = nh.advertise<geometry_msgs::PoseStamped>(T_world_goal_topic, 1); // legt fest, dass m_cf_pose_pub auf dem Topic (1) veröffentlicht
+  pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // legt fest, dass m_cf_pose_pub auf dem Topic (1) veröffentlicht
 
   //debug_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("debug_pose", 1);
 
@@ -74,25 +74,25 @@ trajectory_planner_node::trajectory_planner_node() {
   tf_br.sendTransform(init_tf); // übergibt Transfomration an den transformations broadcaster
 
   geometry_msgs::TransformStamped T_world_goal_msg; // Definition einer TransformStamped Message aus dem geometry_msgs Paket
-  geometry_msgs::PoseStamped pose_goal_msg;
+  geometry_msgs::PoseStamped pose_goal_in_world_msg;
   tf::transformStampedTFToMsg(init_tf, T_world_goal_msg);
-  tf::convert(T_world_goal_msg, pose_goal_msg);
-  T_world_goal_pub.publish(pose_goal_msg);
+  tf::convert(T_world_goal_msg, pose_goal_in_world_msg);
+  pose_goal_in_world_pub.publish(pose_goal_in_world_msg);
 
 
 
   // wait until tf_world_goal_pub has a Subscriber (until a picture is detected)
   // TODO: replace with subscriber callback
   ros::Rate rate(10);
-  while (T_world_goal_pub.getNumSubscribers() < 1)
+  while (pose_goal_in_world_pub.getNumSubscribers() < 1)
   {
     rate.sleep();
     tf_br.sendTransform(init_tf);
-    T_world_goal_pub.publish(pose_goal_msg);
+    pose_goal_in_world_pub.publish(pose_goal_in_world_msg);
   }
 }
 
-void trajectory_planner_node::markerPoseCallback(const geometry_msgs::TransformStamped &T_cam_board_msg) {
+void blind_trajectory_planner_node::markerPoseCallback(const geometry_msgs::TransformStamped &T_cam_board_msg) {
   try {   
 
       tf::StampedTransform world_to_board_tf;
@@ -103,8 +103,8 @@ void trajectory_planner_node::markerPoseCallback(const geometry_msgs::TransformS
       tf::StampedTransform world_to_goal_tf;
 
       //try{
-        m_tf_listener.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf);
-        m_tf_listener.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);
+        tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf);
+        tf_lis.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);
       //}
       //catch (tf::TransformException &ex) {
       //ROS_ERROR("%s",ex.what());
@@ -137,13 +137,13 @@ void trajectory_planner_node::markerPoseCallback(const geometry_msgs::TransformS
       tf_br.sendTransform(world_to_goal_tf);
 
       geometry_msgs::TransformStamped T_world_goal_msg;
-      geometry_msgs::PoseStamped pose_goal_msg;
+      geometry_msgs::PoseStamped pose_goal_in_world_msg;
       tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
-      tf::convert(T_world_goal_msg, pose_goal_msg);
+      tf::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
 
-      ROS_DEBUG("Publishing transform and goal pose:%f, transform:%f", pose_goal_msg.pose.position.z, T_world_goal_msg.transform.translation.z);
-      T_world_goal_pub.publish(pose_goal_msg);
+      ROS_INFO("Publishing transform and goal pose:%f, transform:%f", pose_goal_in_world_msg.pose.position.z, T_world_goal_msg.transform.translation.z);
+      pose_goal_in_world_pub.publish(pose_goal_in_world_msg);
 
 
   }
@@ -155,7 +155,7 @@ void trajectory_planner_node::markerPoseCallback(const geometry_msgs::TransformS
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "trajectory_planner_node"); // initialisiert Node mit dem Namen trajectory_planner_node
-  trajectory_planner_node node;                // erzeugt trajectory_planner_node Node mit dem Namen "node"
+  blind_trajectory_planner_node node;                // erzeugt trajectory_planner_node Node mit dem Namen "node"
   ros::spin();                     // erhält node am Leben
   return 0;
 }

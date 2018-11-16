@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   tf
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -56,11 +57,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   FILES
+   flight_state_change.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -70,10 +70,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES ar_land
-  CATKIN_DEPENDS CATKIN_DEPENDS roscpp rospy std_msgs tf
+  CATKIN_DEPENDS roscpp rospy std_msgs tf message_runtime
 #  DEPENDS system_lib
 )
 
@@ -140,6 +140,12 @@ add_executable(trajectory_planner_node src/trajectory_planner_node.cpp include/a
 target_link_libraries(trajectory_planner_node ${catkin_LIBRARIES})
 add_executable(pid_controller_node src/pid_controller_node.cpp include/ar_land/pid_controller_node.hpp include/ar_land/pid.hpp)
 target_link_libraries(pid_controller_node ${catkin_LIBRARIES})
+add_executable(state_admin_node src/state_admin_node.cpp include/ar_land/state_admin_node.hpp)
+target_link_libraries(state_admin_node ${catkin_LIBRARIES})
+add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.cpp include/ar_land/blind_trajectory_planner_node.hpp)
+target_link_libraries(blind_trajectory_planner_node ${catkin_LIBRARIES})
+add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
+add_dependencies(state_admin_node ar_land_generate_messages_cpp) ## so that first services will be built
 
 
 ## Rename C++ executable without prefix
