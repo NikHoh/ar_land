@@ -144,6 +144,10 @@ add_executable(state_admin_node src/state_admin_node.cpp include/ar_land/state_a
 target_link_libraries(state_admin_node ${catkin_LIBRARIES})
 add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.cpp include/ar_land/blind_trajectory_planner_node.hpp)
 target_link_libraries(blind_trajectory_planner_node ${catkin_LIBRARIES})
+
+add_executable(joy_control src/joy_control.cpp)
+target_link_libraries(joy_control ${catkin_LIBRARIES})
+
 add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(state_admin_node ar_land_generate_messages_cpp) ## so that first services will be built
 
