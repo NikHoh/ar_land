@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<launch>
+  <node pkg="rovio" type="rovio_node" name="rovio" output="screen">
+  <param name="filter_config" value="$(find rovio)/cfg/rovio.info"/>
+  <param name="camera0_config" value="$(find ar_land)/cfg/crazyflie_runcam.yaml"/>
+  </node>
+</launch>
