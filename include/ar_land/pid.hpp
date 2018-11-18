@@ -39,9 +39,30 @@ public:
         m_integral = integral;
     }
 
+    float getI()
+    {
+      return m_ki * m_integral;
+    }
+
+    float getD()
+    {
+      return d;
+    }
+
+    float getP()
+    {
+      return p;
+    }
+
     float ki() const
     {
         return m_ki;
+    }
+
+    float getOutput()
+    {
+      float output = m_ki*m_integral + p + d;
+     return  std::max(std::min(output, m_maxOutput), m_minOutput);
     }
 
     float update(float value, float targetValue)
@@ -51,8 +72,8 @@ public:
         float error = targetValue - value;
         m_integral += error * dt;
         m_integral = std::max(std::min(m_integral, m_integratorMax), m_integratorMin);
-        float p = m_kp * error;
-        float d = 0;
+        p = m_kp * error;
+        d = 0;
         if (dt > 0)
         {
             d = m_kd * (error - m_previousError) / dt;
@@ -79,5 +100,7 @@ private:
     float m_integratorMax;
     float m_integral;
     float m_previousError;
+    float d;
+    float p;
     ros::Time m_previousTime;
 };
