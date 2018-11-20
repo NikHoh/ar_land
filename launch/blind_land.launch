@@ -91,7 +91,7 @@
     <!-- Note that axis IDs are those from the joystick message plus one, to be able to invert axes by specifiying either positive or negative axis numbers.-->
     <!-- Axis 2 from joy message thus has to be set as '3' or '-3'(inverted mode) below-->
     <!-- This configuration is for the Logitech Wireless Gamepad F710 -->
-    <node name="quadrotor_teleop" pkg="crazyflie_demo" type="quadrotor_teleop">
+    <node name="joy_control" pkg="ar_land" type="joy_control">
       <param name="x_axis" value="4"/>
       <param name="y_axis" value="3"/>
       <param name="z_axis" value="2"/>
@@ -101,11 +101,6 @@
       <param name="z_velocity_max" value="60000"/>
       <param name="yaw_velocity_max" value="-200"/>
       <remap from="cmd_vel" to="cmd_vel_teleop" />
-    </node>
-
-    <!-- This node is a helper for sending commands like takeoff and langing to the crazyflie controller -->
-    <node name="crazyflie_demo_controller" pkg="crazyflie_demo" type="controller.py" output="screen">
-       <param name="use_crazyflie_controller" value="$(arg use_controller)"/>
     </node>
 
 <!-- This node merges the joystick command from the teleop node and the controller command -->

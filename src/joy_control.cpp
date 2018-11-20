@@ -2,6 +2,7 @@
 #include <sensor_msgs/Joy.h>
 #include <geometry_msgs/Twist.h>
 #include <std_srvs/Empty.h>
+#include <ar_land/goal_change.h>
 
 
 class JoyController
@@ -16,6 +17,7 @@ private:
   ros::ServiceClient land_client;
   ros::ServiceClient takeoff_client;
   ros::ServiceClient emergency_client;
+  ros::ServiceClient goal_change_client;
 
   struct Axis
   {
@@ -66,6 +68,9 @@ public:
     if(takeoff_client = nh.serviceClient<std_srvs::Empty>("/crazyflie/takeoff"))
           ROS_DEBUG("Found Service \"takeoff\" ");
     emergency_client = nh.serviceClient<std_srvs::Empty>("/crazyflie/emergency");
+    goal_change_client = nh.serviceClient<ar_land::goal_change>("/crazyflie/goal_change");
+
+
   }
 
 
@@ -85,6 +90,12 @@ public:
     bool buttonLand = (bool) getButton(joy,1);
     bool buttonEmergency = (bool) getButton(joy,2);
     bool buttonTakeoff = (bool) getButton(joy,3);
+    bool increase_z = (bool) getButton(joy,5);
+    bool decrease_z = (bool) getButton(joy,7);
+    bool increase_x = joy->axes[4]<0;
+    bool decrease_x = joy->axes[4]>0;
+    bool increase_y = joy->axes[5]>0;
+    bool decrease_y = joy->axes[5]<0;
 
     std_srvs::Empty srv;
     if(buttonLand){
@@ -95,6 +106,26 @@ public:
     else if(buttonTakeoff){
       takeoff_client.call(srv);
     }
+
+    ar_land::goal_change gc_srv;
+
+    if(increase_x||increase_y||increase_z||decrease_x||decrease_y||decrease_z)
+    {
+      if(decrease_x){
+        gc_srv.request.button_code = 1;
+      }else if(increase_x){
+        gc_srv.request.button_code = 2;
+      }else if(decrease_y){
+        gc_srv.request.button_code = 3;
+      }else if(increase_y){
+        gc_srv.request.button_code = 4;
+      }else if(decrease_z){
+        gc_srv.request.button_code = 5;
+      }else{
+        gc_srv.request.button_code = 6;
+      }
+    }
+
   }
 
   void execute()

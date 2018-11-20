@@ -61,6 +61,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    flight_state_change.srv
+   goal_change.srv
  )
 
 ## Generate actions in the 'action' folder
