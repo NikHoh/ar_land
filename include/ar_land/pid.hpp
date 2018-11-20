@@ -59,6 +59,21 @@ public:
         return m_ki;
     }
 
+    void setKI(float ki)
+    {
+      m_ki = ki;
+    }
+
+    void setKD(float kd)
+    {
+      m_kd = kd;
+    }
+
+    void setKP(float kp)
+    {
+      m_kp = kp;
+    }
+
     float getOutput()
     {
       float output = m_ki*m_integral + p + d;

@@ -76,6 +76,12 @@ pid_controller_node::pid_controller_node( // deklariert und initialisiert Contro
   //tf_lis.waitForTransform(world_frame_id, drone_frame_id, ros::Time(0), ros::Duration(10.0)); // this transformation is a identity tf at this moment
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &pid_controller_node::goalChanged, this); // subscribed die Sollwerte (Ziel KSY Pose von World aus gesehen)
+
+  //dynamic reconfigure overwrites PID parameters immediately from cfg file
+  dynamic_reconfigure::Server<
+        ar_land::dynamic_param_configConfig>::CallbackType f;
+    f = boost::bind(&pid_controller_node::dynamic_reconfigure_callback, this, _1, _2);
+    m_server.setCallback(f);
 }
 
 void pid_controller_node::run(double frequency) // not in main() possible?
@@ -155,6 +161,28 @@ ROS_DEBUG("Controller enabled? %d", controller_enabled);
     control_out_pub.publish(control_out);
     ROS_INFO("Controller published control values");
   }
+
+}
+
+void pid_controller_node::dynamic_reconfigure_callback(
+    ar_land::dynamic_param_configConfig& config, uint32_t level) {
+  ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
+  // Coefficients for the PID controller
+  pid_x.setKP(config.Kp_x);
+  pid_x.setKI(config.Ki_x);
+  pid_x.setKD(config.Kd_x);
+
+  pid_y.setKP(config.Kp_y);
+  pid_y.setKI(config.Ki_y);
+  pid_y.setKD(config.Kd_y);
+
+  pid_z.setKP(config.Kp_z);
+  pid_z.setKI(config.Ki_z);
+  pid_z.setKD(config.Kd_z);
+
+  pid_yaw.setKP(config.Kp_yaw);
+  pid_yaw.setKI(config.Ki_yaw);
+  pid_yaw.setKD(config.Kd_yaw);
 
 }
 
