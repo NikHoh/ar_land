@@ -2,13 +2,8 @@
 #define STATE_ADMIN_NODE_H
 
 #include <ros/ros.h>
-#include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <std_msgs/String.h>
 #include <std_srvs/Empty.h>
+#include <ar_land/flight_state_change.h>
 
 
 class state_admin_node

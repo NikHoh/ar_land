@@ -1,26 +1,18 @@
-#include <ros/ros.h>
-#include <tf/transform_listener.h>
-#include <std_srvs/Empty.h>
-#include <geometry_msgs/Twist.h>
-
-
-#include "ar_land/pid.hpp"
 #include "ar_land/pid_controller_node.hpp"
 
 namespace func {
 double get(
     const ros::NodeHandle& n,
-    const std::string& name) {
+    const std::string& name)
+{
   double value;
   n.getParam(name, value);
   return value;
 }
 }
-pid_controller_node::pid_controller_node( // deklariert und initialisiert Controller Classe mit Attributen m_world_frame_id, m_frame, m_pubNav ...
-                                          const std::string& world_frame_id,
+pid_controller_node::pid_controller_node( const std::string& world_frame_id,
                                           const std::string& drone_frame_id,
                                           const ros::NodeHandle& n)
-// Attribute der Klasse Controller zuweisen (Deklaration der Attribute weiter unten
   : world_frame_id(world_frame_id)
   , drone_frame_id(drone_frame_id)
   , control_out_pub()
@@ -67,18 +59,20 @@ pid_controller_node::pid_controller_node( // deklariert und initialisiert Contro
   , resetPID(false)
 
 
-  // Körper der Klassendefinition
+  // Body of class definition
 {
-  ROS_INFO("Im Konstruktor des PID Kontrollers");
+
   ros::NodeHandle nh;
-  //tf_lis.waitForTransform(world_frame_id, drone_frame_id, ros::Time(0), ros::Duration(10.0)); // this transformation is a identity tf at this moment
+
+  // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-  pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &pid_controller_node::goalChanged, this); // subscribed die Sollwerte (Ziel KSY Pose von World aus gesehen)
+
+  // Subscribers
+  pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &pid_controller_node::goalChanged, this);
 }
 
-void pid_controller_node::run(double frequency) // not in main() possible?
+void pid_controller_node::run(double frequency)
 {
-  ROS_INFO("In run Methode von PID Controller");
   ros::NodeHandle node;
   ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &pid_controller_node::iteration, this);
   ros::spin();
@@ -90,10 +84,7 @@ void pid_controller_node::goalChanged(
   pose_goal_in_world_msg = *msg;
   nh.param<bool>("/ar_land/pid_controller_node/controller_enabled", controller_enabled, false);
   pid_controller_node::pidStart();
-
 }
-
-
 
 void pid_controller_node::pidReset()
 {
@@ -105,7 +96,6 @@ void pid_controller_node::pidReset()
   controller_enabled = false;
   nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
   nh.setParam("/ar_land/pid_controller_node/resetPID", false);
-  ROS_INFO("PID Controller reset");
 }
 
 void pid_controller_node::pidStart()
@@ -117,30 +107,24 @@ void pid_controller_node::pidStart()
     pid_y.set(0);
     pid_z.set(z_integral/ pid_z.ki());
     pid_yaw.set(0);
-    ROS_INFO("PID is getting started");
   }
   controller_started = true;
-
 }
 
 void pid_controller_node::iteration(const ros::TimerEvent& e)
 {
-  //ROS_INFO("In iteration-Methode von PID Controller");
   nh.param<bool>("/ar_land/pid_controller_node/controller_enabled", controller_enabled, false);
-  //ROS_INFO("Controller enabled? %d", controller_enabled);
+
   if(controller_enabled){
 
-
-    //float dt = e.current_real.toSec() - e.last_real.toSec();
-
-    bool marker_found = true;
+    bool marker_found = true;               //TODO: actually an information about whether a marker is detected at this current time / the transform is up to date would be needed
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
     }
     catch(tf::TransformException &ex)
     {
-      //ROS_INFO("Find no Transformation from World(Board) to Drone");
+      //ROS_INFO("No Transformation from World(Board) to Drone found");
       marker_found = false;
     }
 
@@ -164,16 +148,16 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
               )).getRPY(roll, pitch, yaw);
 
       geometry_msgs::Twist control_out;
-      control_out.linear.x = pid_x.update(0.0, pose_goal_in_drone.pose.position.x);
+      control_out.linear.x = pid_x.update(0.0, pose_goal_in_drone.pose.position.x); // update(float value, float target_value)
       control_out.linear.y = pid_y.update(0.0, pose_goal_in_drone.pose.position.y);
       control_out.linear.z = pid_z.update(0.0, pose_goal_in_drone.pose.position.z);
       control_out.angular.z = pid_yaw.update(0.0, yaw);
-      ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
+      //ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
 
       control_out_pub.publish(control_out);
-      //ROS_INFO("Controller published control values");
     }
   }
+
   nh.getParam("/ar_land/pid_controller_node/resetPID", resetPID);
   if(resetPID)
   {
