@@ -69,6 +69,12 @@ pid_controller_node::pid_controller_node( const std::string& world_frame_id,
 
   // Subscribers
   pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &pid_controller_node::goalChanged, this);
+
+  //dynamic reconfigure
+  //dynamic reconfigure overwrites PID parameters immediately from cfg file
+  dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig>::CallbackType f;
+  f = boost::bind(&pid_controller_node::dynamic_reconfigure_callback, this, _1, _2);
+  m_server.setCallback(f);
 }
 
 void pid_controller_node::run(double frequency)
@@ -163,6 +169,29 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
   {
     pid_controller_node::pidReset();
     resetPID = false;
+  }
+
+  void pid_controller_node::dynamic_reconfigure_callback(
+        ar_land::dynamic_param_configConfig& config, uint32_t level) {
+
+    ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
+
+    // Coefficients for the PID controller
+    pid_x.setKP(config.Kp_x);
+    pid_x.setKI(config.Ki_x);
+    pid_x.setKD(config.Kd_x);
+
+    pid_y.setKP(config.Kp_y);
+    pid_y.setKI(config.Ki_y);
+    pid_y.setKD(config.Kd_y);
+
+    pid_z.setKP(config.Kp_z);
+    pid_z.setKI(config.Ki_z);
+    pid_z.setKD(config.Kd_z);
+
+    pid_yaw.setKP(config.Kp_yaw);
+    pid_yaw.setKI(config.Ki_yaw);
+    pid_yaw.setKD(config.Kd_yaw);
   }
 
 }

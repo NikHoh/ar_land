@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   tf
   message_generation
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -89,11 +90,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the "generate_dynamic_reconfigure_options" section below
 ##     and list every .cfg file to be processed
 
-## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+## Generate dynamic parameters
+generate_dynamic_reconfigure_options(
+  config/dynamic_param_config.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -149,6 +149,7 @@ add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.c
 target_link_libraries(blind_trajectory_planner_node ${catkin_LIBRARIES})
 add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(state_admin_node ar_land_generate_messages_cpp) ## so that first services will be built
+add_dependencies(pid_controller_node ${PROJECT_NAME}_gencfg) ## add dynamic reconfigure dependency
 
 
 ## Rename C++ executable without prefix

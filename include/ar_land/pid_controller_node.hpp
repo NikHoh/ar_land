@@ -11,6 +11,8 @@
 #include <std_srvs/Empty.h>
 #include <geometry_msgs/Twist.h>
 #include "ar_land/pid.hpp"
+#include <dynamic_reconfigure/server.h>
+#include <ar_land/dynamic_param_configConfig.h>
 
 class pid_controller_node
 {
@@ -22,6 +24,7 @@ public:
   //Functions
   void run(double frequency);
   void iteration(const ros::TimerEvent& e);
+  void dynamic_reconfigure_callback(ar_land::dynamic_param_configConfig& config, uint32_t level);
 
 
 private:
@@ -58,6 +61,8 @@ private:
   PID pid_z;
   PID pid_yaw;
   geometry_msgs::PoseStamped pose_goal_in_world_msg;
+
+  dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig> m_server;
 
 };
 
