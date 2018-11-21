@@ -93,7 +93,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate dynamic parameters
 generate_dynamic_reconfigure_options(
-  cfg/dynamic_param_config.cfg
+  config/dynamic_param_config.cfg
 )
 
 ###################################

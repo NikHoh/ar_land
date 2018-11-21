@@ -11,6 +11,8 @@
 #include <std_srvs/Empty.h>
 #include <geometry_msgs/Twist.h>
 #include "ar_land/pid.hpp"
+#include <dynamic_reconfigure/server.h>
+#include <ar_land/dynamic_param_configConfig.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <ar_land/dynamic_param_configConfig.h>
@@ -63,8 +65,7 @@ private:
   PID pid_yaw;
   geometry_msgs::PoseStamped pose_goal_in_world_msg;
 
-  dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig>
-        m_server;
+  dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig> m_server;
 
 };
 
