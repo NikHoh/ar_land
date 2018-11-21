@@ -136,13 +136,16 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/ar_land_node.cpp)
-add_executable(trajectory_planner_node src/trajectory_planner_node.cpp include/ar_land/trajectory_planner_node.hpp)
-target_link_libraries(trajectory_planner_node ${catkin_LIBRARIES})
+#add_executable(trajectory_planner_node src/trajectory_planner_node.cpp include/ar_land/trajectory_planner_node.hpp)
+#target_link_libraries(trajectory_planner_node ${catkin_LIBRARIES})
+
+# if you want to use tools.hpp write in add_executable: include/ar_land/tools.hpp
+
 add_executable(pid_controller_node src/pid_controller_node.cpp include/ar_land/pid_controller_node.hpp include/ar_land/pid.hpp)
 target_link_libraries(pid_controller_node ${catkin_LIBRARIES})
 add_executable(state_admin_node src/state_admin_node.cpp include/ar_land/state_admin_node.hpp)
 target_link_libraries(state_admin_node ${catkin_LIBRARIES})
-add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.cpp include/ar_land/blind_trajectory_planner_node.hpp)
+add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.cpp include/ar_land/blind_trajectory_planner_node.hpp include/ar_land/tools.hpp)
 target_link_libraries(blind_trajectory_planner_node ${catkin_LIBRARIES})
 add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(state_admin_node ar_land_generate_messages_cpp) ## so that first services will be built

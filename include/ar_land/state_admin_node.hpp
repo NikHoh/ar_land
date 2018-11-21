@@ -15,16 +15,18 @@ class state_admin_node
 {
 public:
 
-  state_admin_node();
   ros::NodeHandle nh;
+  state_admin_node();
+
+
 
 private:
 
 
   // Functions
-
   bool takeoff( std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
   bool land(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+
 
   // Services
   ros::ServiceServer takeoff_srv_serv;

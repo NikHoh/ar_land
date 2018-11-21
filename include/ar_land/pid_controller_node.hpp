@@ -22,6 +22,7 @@ public:
   void run(double frequency);
   void iteration(const ros::TimerEvent& e);
 
+
 private:
 
 
@@ -43,6 +44,7 @@ private:
   // Variables
   bool controller_enabled;
   bool controller_started;
+  bool resetPID;
 
   float z_integral;
 

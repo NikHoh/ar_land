@@ -11,6 +11,8 @@
 #include <std_srvs/Empty.h>
 #include <ar_land/flight_state_change.h>
 
+
+
 class blind_trajectory_planner_node
 {
 public:
@@ -22,7 +24,8 @@ private:
   // Functions
   void setGoalinWorld(const geometry_msgs::TransformStamped &msg);
   bool state_change(ar_land::flight_state_changeRequest &req,
-           ar_land::flight_state_changeResponse  &res);
+                    ar_land::flight_state_changeResponse  &res);
+  void getValue(const geometry_msgs::Twist &msg);
 
 
 
@@ -39,7 +42,6 @@ private:
 
   // Publisher
   ros::Publisher pose_goal_in_world_pub;
-  //ros::Publisher debug_pose_pub;
 
   // Services
   ros::ServiceServer flight_state_change_srv;
@@ -58,10 +60,11 @@ private:
   std::string T_cam_board_topic;
   std::string pose_goal_in_world_topic;
   ros::Publisher control_out_pub;
+  ros::Subscriber control_out_sub;
   State flight_state;
 
+  float last_thrust;
   float thrust;
-  float start_pos_z;
 
 };
 
