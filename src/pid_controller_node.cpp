@@ -171,29 +171,31 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
     resetPID = false;
   }
 
-  void pid_controller_node::dynamic_reconfigure_callback(
-        ar_land::dynamic_param_configConfig& config, uint32_t level) {
 
-    ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
 
-    // Coefficients for the PID controller
-    pid_x.setKP(config.Kp_x);
-    pid_x.setKI(config.Ki_x);
-    pid_x.setKD(config.Kd_x);
+}
 
-    pid_y.setKP(config.Kp_y);
-    pid_y.setKI(config.Ki_y);
-    pid_y.setKD(config.Kd_y);
+void pid_controller_node::dynamic_reconfigure_callback(
+      ar_land::dynamic_param_configConfig& config, uint32_t level) {
 
-    pid_z.setKP(config.Kp_z);
-    pid_z.setKI(config.Ki_z);
-    pid_z.setKD(config.Kd_z);
+  ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
 
-    pid_yaw.setKP(config.Kp_yaw);
-    pid_yaw.setKI(config.Ki_yaw);
-    pid_yaw.setKD(config.Kd_yaw);
-  }
+  // Coefficients for the PID controller
+  pid_x.setKP(config.Kp_x);
+  pid_x.setKI(config.Ki_x);
+  pid_x.setKD(config.Kd_x);
 
+  pid_y.setKP(config.Kp_y);
+  pid_y.setKI(config.Ki_y);
+  pid_y.setKD(config.Kd_y);
+
+  pid_z.setKP(config.Kp_z);
+  pid_z.setKI(config.Ki_z);
+  pid_z.setKD(config.Kd_z);
+
+  pid_yaw.setKP(config.Kp_yaw);
+  pid_yaw.setKI(config.Ki_yaw);
+  pid_yaw.setKD(config.Kd_yaw);
 }
 
 int main(int argc, char **argv)
