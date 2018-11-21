@@ -9,6 +9,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/String.h>
 #include <std_srvs/Empty.h>
+#include <geometry_msgs/Twist.h>
 #include "ar_land/pid.hpp"
 
 #include <dynamic_reconfigure/server.h>
@@ -25,6 +26,7 @@ public:
   void run(double frequency);
   void iteration(const ros::TimerEvent& e);
   void dynamic_reconfigure_callback(ar_land::dynamic_param_configConfig& config, uint32_t level);
+
 
 private:
 
@@ -47,6 +49,7 @@ private:
   // Variables
   bool controller_enabled;
   bool controller_started;
+  bool resetPID;
 
   float z_integral;
 

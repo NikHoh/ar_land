@@ -34,6 +34,13 @@ public:
         m_previousTime = ros::Time::now();
     }
 
+    void set(float integral)
+    {
+        m_integral = integral;
+        m_previousError = 0;
+        m_previousTime = ros::Time::now();
+    }
+
     void setIntegral(float integral)
     {
         m_integral = integral;
@@ -52,6 +59,10 @@ public:
     float getP()
     {
       return p;
+    }
+    float getError()
+    {
+      return error;
     }
 
     float ki() const
@@ -84,7 +95,7 @@ public:
     {
         ros::Time time = ros::Time::now();
         float dt = time.toSec() - m_previousTime.toSec();
-        float error = targetValue - value;
+        error = targetValue - value;
         m_integral += error * dt;
         m_integral = std::max(std::min(m_integral, m_integratorMax), m_integratorMin);
         p = m_kp * error;
@@ -117,5 +128,6 @@ private:
     float m_previousError;
     float d;
     float p;
+    float error;
     ros::Time m_previousTime;
 };
