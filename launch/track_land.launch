@@ -162,7 +162,7 @@
   <!-- The Crazyflie 2.0 ROS package uses the NED convention (see: https://dev.px4.io/en/tutorials/motion-capture-vicon-optitrack.html) -->
 
   <!-- Camera frame to crazyflie/baselink static transformation (camera looking down)-->
-  <node pkg="tf" type="static_transform_publisher" name="cam_drone_tf_br" args="0 0 -0.02 0.707107 -0.707107 0 0 /cam /crazyflie/base_link 100"/>
+  <node pkg="tf" type="static_transform_publisher" name="drone_cam_tf_br" args="0 0 -0.02 0.707107 -0.707107 0 0  /crazyflie/base_link /cam 100"/>
 
   <!-- We define the Aruco Board with the name C3PO as the World frame -->
   <node pkg="tf" type="static_transform_publisher" name="world_to_marker_board_tf_br" args="0 0 0 0 0 0 1 /world $(arg board) 100"/>
