@@ -5,6 +5,7 @@
 #include <ar_land/goal_change.h>
 
 
+
 class JoyController
 {
 private:
@@ -59,16 +60,17 @@ public:
 
     params.param<double>("frequency", frequency_, 100);
 
-    joy_subscriber_ = nh.subscribe<sensor_msgs::Joy>("joy", 1, boost::bind(&JoyController::joyCallback, this, _1));
+    joy_subscriber_ = nh.subscribe<sensor_msgs::Joy>("/crazyflie/joy", 1, boost::bind(&JoyController::joyCallback, this, _1));
     velocity_publisher_ = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
-    ROS_INFO("joy control hello");
-    if(land_client = nh.serviceClient<std_srvs::Empty>("/crazyflie/land"))
-      ROS_INFO("Found Service \"land\" ");
-    if(takeoff_client = nh.serviceClient<std_srvs::Empty>("/crazyflie/takeoff"))
-          ROS_DEBUG("Found Service \"takeoff\" ");
-    emergency_client = nh.serviceClient<std_srvs::Empty>("/crazyflie/emergency");
-    goal_change_client = nh.serviceClient<ar_land::goal_change>("/crazyflie/goal_change");
+    if(land_client = nh.serviceClient<std_srvs::Empty>("/ar_land/land"))
+          ROS_INFO("Found Service \"land\" ");
+    if(takeoff_client = nh.serviceClient<std_srvs::Empty>("/ar_land/takeoff"))
+          ROS_INFO("Found Service \"takeoff\" ");
+    if(emergency_client = nh.serviceClient<std_srvs::Empty>("/ar_land/emergency"))
+          ROS_INFO("Found Service \"emergency\" ");
+    if(goal_change_client = nh.serviceClient<ar_land::goal_change>("/ar_land/goal_change"))
+          ROS_INFO("Found Service \"goal_change\" ");
 
 
   }
@@ -87,15 +89,15 @@ public:
     velocity_.angular.z = getAxis(joy, axes_.yaw);
 
     //Define buttons and actions
-    bool buttonLand = (bool) getButton(joy,1);
-    bool buttonEmergency = (bool) getButton(joy,2);
-    bool buttonTakeoff = (bool) getButton(joy,3);
+    bool buttonLand = (bool) getButton(joy,2);
+    bool buttonEmergency = (bool) getButton(joy,3);
+    bool buttonTakeoff = (bool) getButton(joy,4);
     bool increase_z = (bool) getButton(joy,5);
     bool decrease_z = (bool) getButton(joy,7);
-    bool increase_x = joy->axes[4]<0;
-    bool decrease_x = joy->axes[4]>0;
-    bool increase_y = joy->axes[5]>0;
-    bool decrease_y = joy->axes[5]<0;
+    bool decrease_y = joy->axes[4]<0;
+    bool increase_y = joy->axes[4]>0;
+    bool increase_x = joy->axes[5]>0;
+    bool decrease_x = joy->axes[5]<0;
 
     std_srvs::Empty srv;
     if(buttonLand){
@@ -124,7 +126,11 @@ public:
       }else{
         gc_srv.request.button_code = 6;
       }
+
+      goal_change_client.call(gc_srv);
     }
+
+
 
   }
 
