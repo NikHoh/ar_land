@@ -129,11 +129,6 @@ void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::Transfor
   // Broadcasting T_board_cam as transform to achieve valid tf-tree (message comes from the single_board_node)
   tf::StampedTransform cam_to_board_tf;
   tf::transformStampedMsgToTF(T_cam_board_msg, cam_to_board_tf);
-  tf::StampedTransform board_to_cam_tf;
-  board_to_cam_tf.setData(cam_to_board_tf.inverse());
-  board_to_cam_tf.stamp_ = cam_to_board_tf.stamp_;
-  board_to_cam_tf.frame_id_ = board_frame_id;
-  board_to_cam_tf.child_frame_id_ = cam_frame_id;
 
   tf::StampedTransform world_to_board_tf;
   tf::StampedTransform cam_to_drone_tf;
@@ -154,22 +149,16 @@ void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::Transfor
   board_to_world_tf.setData(world_to_board_tf.inverse());
 
   tf::Transform drone_to_world;
-  drone_to_world = drone_to_cam_tf*cam_to_board_tf*board_to_world_tf;
+  drone_to_world = drone_to_cam_tf*cam_to_board_tf*board_to_world_tf;  //calculate drone_to_world transformation
 
-
-tf::StampedTransform drone_to_world_tf;
-drone_to_world_tf.setData(drone_to_world);
-drone_to_world_tf.child_frame_id_ = world_frame_id;
-drone_to_world_tf.frame_id_ = drone_frame_id;
-drone_to_world_tf.stamp_ = cam_to_board_tf.stamp_;
 
 tf::StampedTransform world_to_drone_tf;
-world_to_drone_tf.setData(drone_to_world_tf.inverse());
+world_to_drone_tf.setData(drone_to_world.inverse());
 world_to_drone_tf.child_frame_id_ = drone_frame_id;
 world_to_drone_tf.frame_id_ = world_frame_id;
 world_to_drone_tf.stamp_ = cam_to_board_tf.stamp_;
 
-  tf_br.sendTransform(world_to_drone_tf); // broadcasts the board_to_cam_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
+  tf_br.sendTransform(world_to_drone_tf); // broadcasts the world_to_drone_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
 
   if(flight_state == Automatic)
   {
