@@ -30,6 +30,9 @@ blind_trajectory_planner_node::blind_trajectory_planner_node()
 
   //Services
   flight_state_change_srv = nh.advertiseService("flight_state_change", &blind_trajectory_planner_node::state_change, this);
+  goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &blind_trajectory_planner_node::goal_change, this);
+
+  goal_position.setValue(0,0,0.7);
 
 }
 
@@ -110,6 +113,20 @@ bool blind_trajectory_planner_node::state_change(ar_land::flight_state_changeReq
 
   }
     break;
+  case Emergency:
+  {
+    nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
+    geometry_msgs::Twist msg;
+    msg.linear.x = 0;
+    msg.linear.y = 0;
+    msg.linear.z = 0;
+    msg.angular.x = 0;
+    msg.angular.y = 0;
+    msg.angular.z = 0;
+    control_out_pub.publish(msg);
+    ROS_INFO("State change to Emergency");
+  }
+    break;
   default:
   {
     ROS_ERROR("Flight state not set");
@@ -123,6 +140,61 @@ void blind_trajectory_planner_node::getValue(const geometry_msgs::Twist &msg){
   last_thrust = msg.linear.z;
 }
 
+bool blind_trajectory_planner_node::goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res)
+{
+  ROS_INFO("Goal change requested. %d: ", (int) req.button_code);
+  switch(req.button_code)
+  {
+  case 1:
+  {
+    double x = goal_position.getX();
+    goal_position.setX(x-0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+  }
+    break;
+  case 2:
+  {
+    double x = goal_position.getX();
+    goal_position.setX(x+0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+  }
+    break;
+  case 3:
+  {
+    double y = goal_position.getY();
+    goal_position.setY(y-0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+  }
+    break;
+  case 4:
+  {
+    double y = goal_position.getY();
+    goal_position.setY(y+0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+  }
+    break;
+  case 5:
+  {
+    double z = goal_position.getZ();
+    goal_position.setZ(z-0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+  }
+    break;
+  case 6:
+  {
+    double z = goal_position.getZ();
+    goal_position.setZ(z+0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+  }
+    break;
+  default:
+  {
+    ROS_ERROR("Error in Button Code");
+  }
+    break;
+  }
+
+}
 
 void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::TransformStamped &T_cam_board_msg) {
 
@@ -154,7 +226,7 @@ void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::Transfor
 
     // The Goal follows ROS conventions (Z axis up, X to the right and Y to the front)
     // We set the goal above the world coordinate frame (our marker)
-    tf::Vector3 goal_position(0,0,0.7);
+
     world_to_goal_tf.setIdentity();
     world_to_goal_tf.setOrigin(goal_position);
     world_to_goal_tf.child_frame_id_ = goal_frame_id;
