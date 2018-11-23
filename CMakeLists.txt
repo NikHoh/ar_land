@@ -151,8 +151,8 @@ add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ##
 add_dependencies(state_admin_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(pid_controller_node ${PROJECT_NAME}_gencfg) ## add dynamic reconfigure dependency
 
-add_executable(track_trajectory_planner_node src/track_trajectory_planner_node.cpp include/ar_land/track_trajectory_planner_node.hpp include/ar_land/tools.hpp)
-target_link_libraries(track_trajectory_planner_node ${catkin_LIBRARIES})
+add_executable(marker_observer_node src/marker_observer_node.cpp include/ar_land/marker_observer_node.hpp)
+target_link_libraries(marker_observer_node ${catkin_LIBRARIES})
 
 
 ## Rename C++ executable without prefix
