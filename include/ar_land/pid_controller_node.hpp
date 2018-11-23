@@ -44,6 +44,7 @@ private:
 
   // Publisher
   ros::Publisher control_out_pub;
+  ros::Publisher control_error_pub;
 
 
   // Variables

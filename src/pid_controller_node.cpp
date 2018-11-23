@@ -66,6 +66,7 @@ pid_controller_node::pid_controller_node( const std::string& world_frame_id,
 
   // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+  control_error_pub = nh.advertise<geometry_msgs::Vector3>("control_error_topic", 1);
 
   // Subscribers
   pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &pid_controller_node::goalChanged, this);
@@ -130,7 +131,7 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
     }
     catch(tf::TransformException &ex)
     {
-      //ROS_INFO("No Transformation from World(Board) to Drone found");
+      ROS_INFO("No Transformation from World(Board) to Drone found");
       marker_found = false;
     }
 
@@ -158,6 +159,13 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
       control_out.linear.y = pid_y.update(0.0, pose_goal_in_drone.pose.position.y);
       control_out.linear.z = pid_z.update(0.0, pose_goal_in_drone.pose.position.z);
       control_out.angular.z = pid_yaw.update(0.0, yaw);
+
+      geometry_msgs::Vector3 control_error_msg;
+      control_error_msg.x = pid_x.getError();
+      control_error_msg.y = pid_y.getError();
+      control_error_msg.z = pid_z.getError();
+
+      control_error_pub.publish(control_error_msg);
       //ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
 
       control_out_pub.publish(control_out);
@@ -196,6 +204,8 @@ void pid_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKP(config.Kp_yaw);
   pid_yaw.setKI(config.Ki_yaw);
   pid_yaw.setKD(config.Kd_yaw);
+
+  ROS_INFO("ki_x: %f" , pid_x.ki() );
 }
 
 int main(int argc, char **argv)
