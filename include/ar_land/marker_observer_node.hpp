@@ -5,11 +5,14 @@
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 
 class MarkerObserver
 {
 public:
   MarkerObserver();
+  void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_cam_board_msg);
   void run();
 
 private:
@@ -24,6 +27,11 @@ private:
   std::string board_frame_id;
   std::string goal_frame_id;
   std::string cam_frame_id;
+
+  std::string T_cam_board_topic;
+
+  // Subscribers
+  ros::Subscriber T_cam_board_sub;
 
 };
 
