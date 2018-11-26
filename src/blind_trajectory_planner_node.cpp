@@ -123,7 +123,7 @@ void blind_trajectory_planner_node::getValue(const geometry_msgs::Twist &msg){
   last_thrust = msg.linear.z;
 }
 
-//rethink this because of changes
+//rethink this because of changes , should be in some frequently called method like in a loop
 void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::TransformStamped &T_cam_board_msg) {
 
   //transfered to marker_observer_node
@@ -171,15 +171,23 @@ void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::Transfor
 
   if(flight_state == Automatic)
   {
-
+    tf::StampedTransform world_to_board_tf;
     tf::StampedTransform world_to_goal_tf;
+    try{
+      tf_lis.lookupTransform(world_frame_id,board_frame_id,ros::Time(0),world_to_board_tf);
+      world_to_goal_tf.setRotation(world_to_board_tf.getRotation());
+      world_to_goal_tf.child_frame_id_ = goal_frame_id;
+      world_to_goal_tf.frame_id_ = world_frame_id;
+      world_to_goal_tf.stamp_ = ros::Time::now();
+      world_to_goal_tf.setOrigin(world_to_board_tf.getOrigin()+tf::Vector3(0,0,0.7));
+    }                                        //example
 
 
 
     // The Goal follows ROS conventions (Z axis up, X to the right and Y to the front)
     // We set the goal above the world coordinate frame (our marker)
-    tf::Vector3 goal_position(0,0,0.7);
-    world_to_goal_tf.setIdentity();
+    tf::Vector3 goal_position(0,0,0.7);  //has to be changed, set it in world frame
+    world_to_goal_tf.setIdentity(); // reconsider changing it so it can be adapted depending on current pose/orientation
     world_to_goal_tf.setOrigin(goal_position);
     world_to_goal_tf.child_frame_id_ = goal_frame_id;
     world_to_goal_tf.frame_id_ = world_frame_id;
