@@ -21,7 +21,7 @@ trajectory_planner_node::trajectory_planner_node()
   n.param<std::string>("cam_frame_id", cam_frame_id, "/cam");
 
   // Subscribers
-  T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
+  //T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
   control_out_sub = nh.subscribe("cmd_vel",1, &trajectory_planner_node::getValue, this);
 
   // Publishers
@@ -267,28 +267,23 @@ bool trajectory_planner_node::goal_change(ar_land::goal_change::Request& req, ar
 
 }
 
-void trajectory_planner_node::setGoalinWorld(const geometry_msgs::TransformStamped &T_cam_board_msg) {
+void trajectory_planner_node::run(double frequency)
+{
+  ros::NodeHandle node;
+  ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &trajectory_planner_node::setGoalinWorld, this);
+  ros::spin();
+}
 
-  // Broadcasting T_board_cam as transform to achieve valid tf-tree (message comes from the single_board_node)
-  tf::StampedTransform T_cam_board;
-  tf::transformStampedMsgToTF(T_cam_board_msg, T_cam_board);
-  tf::StampedTransform T_board_cam;
-  T_board_cam.setData(T_cam_board.inverse());
-  T_board_cam.stamp_ = T_cam_board.stamp_;
-  T_board_cam.frame_id_ = board_frame_id;
-  T_board_cam.child_frame_id_ = cam_frame_id;
-
-  tf_br.sendTransform(T_board_cam); // broadcasts the board_to_cam_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
+void trajectory_planner_node::setGoalinWorld(const ros::TimerEvent& e) {
 
   if(flight_state == Automatic)
   {
     tf::StampedTransform world_to_board_tf;
-    tf::StampedTransform cam_to_drone_tf;
     tf::StampedTransform world_to_goal_tf;
+    tf::Transform board_to_goal;
 
     try{
       tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf); // tf which is set up in parameter server
-      tf_lis.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);     // tf which is set up in parameter server
     }
     catch (tf::TransformException &ex) {
       ROS_ERROR("%s",ex.what());
@@ -298,15 +293,18 @@ void trajectory_planner_node::setGoalinWorld(const geometry_msgs::TransformStamp
     // The Goal follows ROS conventions (Z axis up, X to the right and Y to the front)
     // We set the goal above the world coordinate frame (our marker)
 
-    world_to_goal_tf.setIdentity();
-<<<<<<< HEAD
-    world_to_goal_tf.setOrigin(goal_position_in_board); // TODO: Caution: frame_board isn't anymore frame_world --> change this to real world_to_goal_tf!!!
-=======
+    board_to_goal.setIdentity();
 
->>>>>>> c25d6d95ba59d9d3c53d5bf133fb72630bc7f229
+    board_to_goal.setOrigin(goal_position_in_board);
+
+world_to_goal_tf.setData(world_to_board_tf*board_to_goal);
+
+
     world_to_goal_tf.child_frame_id_ = goal_frame_id;
     world_to_goal_tf.frame_id_ = world_frame_id;
     world_to_goal_tf.stamp_ = ros::Time::now();
+
+
 
     tf_br.sendTransform(world_to_goal_tf);
 
@@ -326,7 +324,9 @@ int main(int argc, char** argv) {
 
   ros::NodeHandle n("~");
   trajectory_planner_node node;                // Creates trajectory_planner_node
-  ros::spin();
+  double frequency = 50; // TODO frequency okay?
+  node.run(frequency);
+
 
   return 0;
 }

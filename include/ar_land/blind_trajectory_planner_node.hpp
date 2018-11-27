@@ -21,7 +21,7 @@ class blind_trajectory_planner_node
 public:
   blind_trajectory_planner_node();
   ros::NodeHandle nh;
-  void iteration(const ros::TimerEvent& e);
+
 
 private:
   // Functions
@@ -69,7 +69,7 @@ private:
   ros::Subscriber control_out_sub;
   State flight_state;
 
-  tf::Vector3 goal_position;
+  tf::Vector3 goal_position_in_board;
 
   float last_thrust;
   float thrust;

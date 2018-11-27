@@ -32,7 +32,7 @@ blind_trajectory_planner_node::blind_trajectory_planner_node()
   flight_state_change_srv = nh.advertiseService("flight_state_change", &blind_trajectory_planner_node::state_change, this);
   goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &blind_trajectory_planner_node::goal_change, this);
 
-  goal_position.setValue(0,0,0.7);
+  goal_position_in_board.setValue(0,0,0.7);
 
 }
 
@@ -147,44 +147,44 @@ bool blind_trajectory_planner_node::goal_change(ar_land::goal_change::Request& r
   {
   case 1:
   {
-    double x = goal_position.getX();
-    goal_position.setX(x-0.1);
-    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+    double x = goal_position_in_board.getX();
+    goal_position_in_board.setX(x-0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position_in_board.getX(), goal_position_in_board.getY(), goal_position_in_board.getZ());
   }
     break;
   case 2:
   {
-    double x = goal_position.getX();
-    goal_position.setX(x+0.1);
-    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+    double x = goal_position_in_board.getX();
+    goal_position_in_board.setX(x+0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position_in_board.getX(), goal_position_in_board.getY(), goal_position_in_board.getZ());
   }
     break;
   case 3:
   {
-    double y = goal_position.getY();
-    goal_position.setY(y-0.1);
-    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+    double y = goal_position_in_board.getY();
+    goal_position_in_board.setY(y-0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position_in_board.getX(), goal_position_in_board.getY(), goal_position_in_board.getZ());
   }
     break;
   case 4:
   {
-    double y = goal_position.getY();
-    goal_position.setY(y+0.1);
-    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+    double y = goal_position_in_board.getY();
+    goal_position_in_board.setY(y+0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position_in_board.getX(), goal_position_in_board.getY(), goal_position_in_board.getZ());
   }
     break;
   case 5:
   {
-    double z = goal_position.getZ();
-    goal_position.setZ(z-0.1);
-    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+    double z = goal_position_in_board.getZ();
+    goal_position_in_board.setZ(z-0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position_in_board.getX(), goal_position_in_board.getY(), goal_position_in_board.getZ());
   }
     break;
   case 6:
   {
-    double z = goal_position.getZ();
-    goal_position.setZ(z+0.1);
-    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position.getX(), goal_position.getY(), goal_position.getZ());
+    double z = goal_position_in_board.getZ();
+    goal_position_in_board.setZ(z+0.1);
+    ROS_INFO("Set new goal position to (%0.2f, %0.2f, %0.2f)", goal_position_in_board.getX(), goal_position_in_board.getY(), goal_position_in_board.getZ());
   }
     break;
   default:
@@ -228,7 +228,7 @@ void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::Transfor
     // We set the goal above the world coordinate frame (our marker)
 
     world_to_goal_tf.setIdentity();
-    world_to_goal_tf.setOrigin(goal_position);
+    world_to_goal_tf.setOrigin(goal_position_in_board);
     world_to_goal_tf.child_frame_id_ = goal_frame_id;
     world_to_goal_tf.frame_id_ = world_frame_id;
     world_to_goal_tf.stamp_ = ros::Time::now();
