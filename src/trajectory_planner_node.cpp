@@ -299,7 +299,11 @@ void trajectory_planner_node::setGoalinWorld(const geometry_msgs::TransformStamp
     // We set the goal above the world coordinate frame (our marker)
 
     world_to_goal_tf.setIdentity();
+<<<<<<< HEAD
     world_to_goal_tf.setOrigin(goal_position_in_board); // TODO: Caution: frame_board isn't anymore frame_world --> change this to real world_to_goal_tf!!!
+=======
+
+>>>>>>> c25d6d95ba59d9d3c53d5bf133fb72630bc7f229
     world_to_goal_tf.child_frame_id_ = goal_frame_id;
     world_to_goal_tf.frame_id_ = world_frame_id;
     world_to_goal_tf.stamp_ = ros::Time::now();
