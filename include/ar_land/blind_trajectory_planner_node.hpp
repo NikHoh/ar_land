@@ -21,11 +21,11 @@ class blind_trajectory_planner_node
 public:
   blind_trajectory_planner_node();
   ros::NodeHandle nh;
-  void iteration(const ros::TimerEvent& e);
+  void run(double frequency);
 
 private:
   // Functions
-  void setGoalinWorld(const geometry_msgs::TransformStamped &msg);
+  void setGoalinWorld(const ros::TimerEvent& e);
   bool state_change(ar_land::flight_state_changeRequest &req,
                     ar_land::flight_state_changeResponse  &res);
   void getValue(const geometry_msgs::Twist &msg);
@@ -69,7 +69,7 @@ private:
   ros::Subscriber control_out_sub;
   State flight_state;
 
-  tf::Vector3 goal_position;
+  tf::Vector3 goal_position_in_board;
 
   float last_thrust;
   float thrust;
