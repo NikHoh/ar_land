@@ -37,6 +37,7 @@ void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_c
 
   tf::Transform world_to_board;
   world_to_board = world_to_drone_tf*drone_to_cam_tf*cam_to_board_tf; // calculate world_to_board transformation
+  //world_to_board = cam_to_board_tf*drone_to_cam_tf*world_to_drone_tf; figure this out** presumably wrong
 
   world_to_board_tf.setData(world_to_board);
   world_to_board_tf.child_frame_id_ = board_frame_id;
@@ -50,19 +51,7 @@ void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_c
 void MarkerObserver::run(){ // now in update (callback) method.... put here some state estimator maybe
   ros::Rate rate(10.0); // in Hertz
    while (nh.ok()){
-     tf::StampedTransform transform;
-     try{
-       tf_listener.lookupTransform(world_frame_id, board_frame_id,
-                                ros::Time(0), transform); // pick latest available transform
-       if(transform.stamp_ < ros::Time.now()-ros::Time(0,100000000)){
-         // publish new one??
-       }
-       tf_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), world_frame_id, board_frame_id));
-     }
-     catch (tf::TransformException ex){
-       ROS_ERROR("%s",ex.what());
-       ros::Duration(1.0).sleep();
-     }
+
      rate.sleep();
 
 
@@ -76,6 +65,6 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "marker_observer_node");
 
   MarkerObserver marker_observer;
-  marker_observer.run();
+  //marker_observer.run();
 
 }
