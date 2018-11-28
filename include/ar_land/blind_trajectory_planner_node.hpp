@@ -25,7 +25,7 @@ public:
 
 private:
   // Functions
-  void setGoalinWorld(const geometry_msgs::TransformStamped &msg);
+  void setGoalinWorld(const ros::TimerEvent& e);
   bool state_change(ar_land::flight_state_changeRequest &req,
                     ar_land::flight_state_changeResponse  &res);
   void getValue(const geometry_msgs::Twist &msg);
