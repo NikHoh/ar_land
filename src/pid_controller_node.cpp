@@ -166,7 +166,7 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
       control_error_msg.z = pid_z.getError();
 
       control_error_pub.publish(control_error_msg);
-      //ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
+      ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
 
       control_out_pub.publish(control_out);
     }
