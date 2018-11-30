@@ -15,8 +15,8 @@
 	<arg name="camera_fps" default="30"/>
   <arg name="camera_calibration" default="file://$(find ar_nav)/data/crazyflie_runcam.yaml"/>
 	<arg name="image_undist" default="image_rect_color"/>  
-  <arg name="uri" default="radio://0/120/2M/E7E7E7E701" />  <!-- Niko's Drohne -->
-   <!--<arg name="uri" default="radio://0/110/2M/E7E7E7E702" />  Philipps Drohne -->
+  <!-- <arg name="uri" default="radio://0/120/2M/E7E7E7E701" /> --> <!-- Niko's Drohne -->
+   <arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> <!-- Philipps Drohne -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="use_controller" default="true"/>
   <arg name="publish_tf" default="false" />
@@ -109,7 +109,7 @@
       <param name ="controller_enabled" type="bool" value="false"/>
       <param name = "z_integral" type = "double" value="0" />
       <param name = "resetPID" type = "bool" value="false" />
-      <rosparam command="load" file="$(find ar_nav)/data/config/crazyflie2_cam.yaml" />           <!-- TODo: PID Parameter anpassen /-->
+      <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />           <!-- TODo: PID Parameter anpassen /-->
       <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
       <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
       <remap from="goal" to="$(arg goal_topic_name)" />

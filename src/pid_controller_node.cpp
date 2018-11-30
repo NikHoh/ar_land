@@ -166,7 +166,7 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
       control_error_msg.z = pid_z.getError();
 
       control_error_pub.publish(control_error_msg);
-      //ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
+      ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
 
       control_out_pub.publish(control_out);
     }
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 
   n.param<std::string>("drone_frame_id", drone_frame_id, "/crazyflie/base_link");
 
-  n.param<double>("frequency", frequency, 50.0);
+  n.param<double>("frequency", frequency, 30.0);
 
   pid_controller_node controller(world_frame_id, drone_frame_id, n);
   controller.run(frequency);
