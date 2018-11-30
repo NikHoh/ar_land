@@ -12,7 +12,7 @@ class MarkerObserver
 {
 public:
   MarkerObserver();
-  void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_cam_board_msg);
+  void updateMarkerPose(const geometry_msgs::TransformStamped &T_cam_board_msg);
   void run();
 
 private:

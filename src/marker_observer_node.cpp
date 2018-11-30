@@ -24,8 +24,8 @@ void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_c
   tf::StampedTransform world_to_drone_tf;
 
   try{
-    tf_lis.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);     // tf which is set up in parameter server
-    tf_lis.lookupTransform(world_frame_id,drone_frame_id,ros::Time(0),world_to_drone_tf);  // tf found by odometry/tracking room
+    tf_listener.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);     // tf which is set up in parameter server
+    tf_listener.lookupTransform(world_frame_id,drone_frame_id,ros::Time(0),world_to_drone_tf);  // tf found by odometry/tracking room
   }
   catch (tf::TransformException &ex) {
     ROS_ERROR("%s",ex.what());
@@ -44,7 +44,7 @@ void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_c
   world_to_board_tf.frame_id_ = world_frame_id;
   world_to_board_tf.stamp_ = cam_to_board_tf.stamp_;
 
-  tf_br.sendTransform(world_to_board_tf); // broadcasts the world_to_drone_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
+  tf_broadcaster.sendTransform(world_to_board_tf); // broadcasts the world_to_drone_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
 
 }
 

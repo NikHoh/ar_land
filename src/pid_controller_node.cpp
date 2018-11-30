@@ -82,6 +82,7 @@ void pid_controller_node::run(double frequency)
 {
   ros::NodeHandle node;
   ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &pid_controller_node::iteration, this);
+  ROS_INFO("Nach dem Timer laufe ich (run()) trotzdem weiter");
   ros::spin();
 }
 

@@ -1,5 +1,5 @@
-#ifndef BLIND_TRAJECTORY_PLANNER_NODE_H
-#define BLIND_TRAJECTORY_PLANNER_NODE_H
+#ifndef TRAJECTORY_PLANNER_NODE_H
+#define TRAJECTORY_PLANNER_NODE_H
 
 #include <ros/ros.h>
 #include <tf/tf.h>
@@ -11,25 +11,27 @@
 #include <std_srvs/Empty.h>
 #include <ar_land/flight_state_change.h>
 #include <ar_land/goal_change.h>
+#include <math.h>
 
 
 
 
 
-class blind_trajectory_planner_node
+class trajectory_planner_node
 {
 public:
-  blind_trajectory_planner_node();
+  trajectory_planner_node();
   ros::NodeHandle nh;
-
+  void run(double frequency);
 
 private:
   // Functions
-  void setGoalinWorld(const geometry_msgs::TransformStamped &msg);
+  void setGoalinWorld(const ros::TimerEvent& e);
   bool state_change(ar_land::flight_state_changeRequest &req,
                     ar_land::flight_state_changeResponse  &res);
   void getValue(const geometry_msgs::Twist &msg);
   bool goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res);
+  void setTrajPoint(const ros::TimerEvent& e);
 
 
 
@@ -69,6 +71,16 @@ private:
   ros::Subscriber control_out_sub;
   State flight_state;
 
+  double frequency;
+  float dt;
+  bool traj_started;
+
+  tf::Vector3 start_position_in_board;
+  ros::Time start_time;
+
+  ros::Timer timer;
+
+
   tf::Vector3 goal_position_in_board;
 
   float last_thrust;
@@ -76,4 +88,4 @@ private:
 
 };
 
-#endif // BLIND_TRAJECTORY_PLANNER_NODE_H
+#endif // TRAJECTORY_PLANNER_NODE_H
