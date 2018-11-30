@@ -15,8 +15,8 @@
         <arg name="camera_fps" default="30"/>
   <arg name="camera_calibration" default="file://$(find ar_nav)/data/crazyflie_runcam.yaml"/>
         <arg name="image_undist" default="image_rect_color"/>
-  <arg name="uri" default="radio://0/120/2M/E7E7E7E701" />  <!-- Niko's Drohne -->
-   <!--<arg name="uri" default="radio://0/110/2M/E7E7E7E702" />  Philipps Drohne -->
+  <!--<arg name="uri" default="radio://0/120/2M/E7E7E7E701" />   Niko's Drohne -->
+   <arg name="uri" default="radio://0/110/2M/E7E7E7E702" />  <!--Philipps Drohne -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="use_controller" default="true"/>
   <arg name="publish_tf" default="false" />
@@ -120,6 +120,21 @@
 <group ns = "ar_land" >
     <!-- State machine node -->
 
+<!-- Note that axis IDs are those from the joystick message plus one, to be able to invert axes by specifiying either positive or negative axis numbers.-->
+<!-- Axis 2 from joy message thus has to be set as '3' or '-3'(inverted mode) below-->
+<!-- This configuration is for the Logitech Wireless Gamepad F710 -->
+<node name="joy_control" pkg="ar_land" type="joy_control" output="screen">
+  <param name="x_axis" value="4"/>
+  <param name="y_axis" value="3"/>
+  <param name="z_axis" value="2"/>
+  <param name="yaw_axis" value="1"/>
+  <param name="x_velocity_max" value="30"/>
+  <param name="y_velocity_max" value="-30"/>
+  <param name="z_velocity_max" value="60000"/>
+  <param name="yaw_velocity_max" value="-200"/>
+  <remap from="cmd_vel" to="/crazyflie/cmd_vel_teleop" />
+</node>
+
 <node name="state_admin_node" pkg="ar_land" type="state_admin_node" output="screen">
 </node>
 
@@ -130,13 +145,13 @@
       <param name ="controller_enabled" type="bool" value="false"/>
       <param name = "z_integral" type = "double" value="0" />
       <param name = "resetPID" type = "bool" value="false" />
-      <rosparam command="load" file="$(find ar_nav)/data/config/crazyflie2_cam.yaml" />           <!-- TODo: PID Parameter anpassen /-->
+      <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />
       <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
       <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
       <remap from="goal" to="$(arg goal_topic_name)" />
     </node>
 
-tra
+
 
 
 
@@ -155,6 +170,14 @@ tra
 
         <!-- marker observer node-->
         <node name="marker_observer_node" pkg="ar_land" type="marker_observer_node" output="screen">
+        <param name="T_cam_board_topic" value="/ar_single_board/transform" />
+        <param name="pose_goal_in_world_topic" value="$(arg goal_topic_name)" />
+        <param name="world_frame_id" value="/world" />
+        <param name="drone_frame_id" value="/crazyflie/base_link" />
+        <param name="goal_frame_id" value="/crazyflie/goal" />
+        <param name="board_frame_id" value="/board_c3po" />
+        <param name="cam_frame_id" value="/cam" />
+        <param name="ar_board" value="$(arg board)" />
         </node>
 
 </group>
@@ -169,6 +192,5 @@ tra
   <!-- Camera frame to crazyflie/baselink static transformation (camera looking down)-->
   <node pkg="tf" type="static_transform_publisher" name="drone_cam_tf_br" args="0 0 -0.02 0.707107 -0.707107 0 0  /crazyflie/base_link /cam 100"/>
 
-  <!-- We define the Aruco Board with the name C3PO as the World frame -->
-  <node pkg="tf" type="static_transform_publisher" name="world_to_marker_board_tf_br" args="0 0 0 0 0 0 1 /world $(arg board) 100"/>
+
 </launch>

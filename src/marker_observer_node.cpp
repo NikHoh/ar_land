@@ -18,12 +18,13 @@ MarkerObserver::MarkerObserver(){
 void MarkerObserver::updateMarkerPose(const geometry_msgs::TransformStamped &T_cam_board_msg) {
   tf::StampedTransform cam_to_board_tf;
   tf::transformStampedMsgToTF(T_cam_board_msg, cam_to_board_tf);
-
   tf::StampedTransform world_to_board_tf;
   tf::StampedTransform cam_to_drone_tf;
   tf::StampedTransform world_to_drone_tf;
 
   try{
+    //tf_listener.lookupTransform(drone_frame_id, cam_frame_id, ros::Time(0), cam_to_drone_tf);     // tf which is set up in parameter server
+    //tf_listener.lookupTransform(drone_frame_id,world_frame_id,ros::Time(0),world_to_drone_tf);  // tf found by odometry/tracking room
     tf_listener.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);     // tf which is set up in parameter server
     tf_listener.lookupTransform(world_frame_id,drone_frame_id,ros::Time(0),world_to_drone_tf);  // tf found by odometry/tracking room
   }
@@ -66,5 +67,5 @@ int main(int argc, char **argv)
 
   MarkerObserver marker_observer;
   //marker_observer.run();
-
+  ros::spin();
 }

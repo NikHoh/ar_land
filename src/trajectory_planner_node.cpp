@@ -75,14 +75,14 @@ bool trajectory_planner_node::state_change(ar_land::flight_state_changeRequest &
       // press red button (Logitech controller) / triangle (PS4 controller)
       if (ros::Time::now().toSec() - startTime < 1.5) // drone has not finished takeoff
       {
-        thrust = 40000;
+        thrust = 45500;
         geometry_msgs::Twist msg;
         msg.linear.z = thrust;
         control_out_pub.publish(msg);
       }
       else // drone has completed takeoff --> switch to automatic mode
       {
-        nh.setParam("/ar_land/pid_controller_node/z_integral", 40000);
+        nh.setParam("/ar_land/pid_controller_node/z_integral", 44500);
         nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
 
         flight_state = Automatic;
@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
 
   ros::NodeHandle n("~");
   trajectory_planner_node node;                // Creates trajectory_planner_node
-  double frequency = 50; // TODO frequency okay?
+  double frequency = 30; // TODO frequency okay?
   node.run(frequency);
 
 
