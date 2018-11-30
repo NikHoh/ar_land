@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+
+<!-- Special console logger config -->
+<env name="ROSCONSOLE_CONFIG_FILE" value="$(find ar_land)/config/custom_rosconsole.config"/>
+
+	
+  <arg name="uri" default="radio://0/80/250K/E7E7E7E7E7" />
+
+  <!-- ...................................................................... -->
+  <!-- Launch the Crazyflie driver and add the desired crazyflie-->
+  <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch"></include>
+
+  <group ns="crazyflie">
+    <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
+      <arg name="uri" value="$(arg uri)" />
+      <arg name="tf_prefix" value="crazyflie" />
+      <arg name="enable_logging" value="True" />
+    </include>
+</group>
+
+<group ns = "ar_land" >
+    <!-- Integrates linear imu accelerations. -->
+    <node name="accel_calib_test_node" pkg="ar_land" type="accel_calib_test_node" output="screen">
+    </node>
+</group>
+
+</launch>
