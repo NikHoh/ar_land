@@ -12,15 +12,21 @@ class MarkerObserver
 {
 public:
   MarkerObserver();
-  void updateMarkerPose(const geometry_msgs::TransformStamped &T_cam_board_msg);
-  void run();
+
+  void run(double frequency);
 
 private:
   ros::NodeHandle nh;
 
+  void updateMarkerPose(const ros::TimerEvent& e);
+  void getCamBoardTf(const geometry_msgs::TransformStamped &T_cam_board_msg);
+
+
   // Transforms
   tf::TransformListener tf_listener;
   tf::TransformBroadcaster tf_broadcaster;
+
+  tf::StampedTransform cam_to_board_tf;
 
   std::string drone_frame_id;
   std::string world_frame_id;
