@@ -13,6 +13,7 @@ MarkerObserver::MarkerObserver(){
 
   T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &MarkerObserver::getCamBoardTf, this);
   cam_to_board_tf.setIdentity();
+  world_to_board_tf.setIdentity();
 
 }
 
@@ -20,13 +21,6 @@ void MarkerObserver::getCamBoardTf(const geometry_msgs::TransformStamped &T_cam_
 {
   tf::transformStampedMsgToTF(T_cam_board_msg, cam_to_board_tf);
 
-}
-
-
-void MarkerObserver::updateMarkerPose(const ros::TimerEvent& e) {
-
-
-  tf::StampedTransform world_to_board_tf;
   tf::StampedTransform cam_to_drone_tf;
   tf::StampedTransform world_to_drone_tf;
 
@@ -50,8 +44,17 @@ void MarkerObserver::updateMarkerPose(const ros::TimerEvent& e) {
   world_to_board_tf.frame_id_ = world_frame_id;
   world_to_board_tf.stamp_ = cam_to_board_tf.stamp_;
 
-  tf_broadcaster.sendTransform(world_to_board_tf); // broadcasts the world_to_drone_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
+}
 
+
+void MarkerObserver::updateMarkerPose(const ros::TimerEvent& e) {
+
+
+if(!world_to_board_tf.frame_id_.empty())
+{
+  world_to_board_tf.stamp_ = ros::Time::now();
+  tf_broadcaster.sendTransform(world_to_board_tf); // broadcasts the world_to_drone_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
+}
 }
 
 void MarkerObserver::run(double frequency)

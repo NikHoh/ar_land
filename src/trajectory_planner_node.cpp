@@ -125,6 +125,7 @@ bool trajectory_planner_node::state_change(ar_land::flight_state_changeRequest &
     break;
   case Emergency:
   {
+    nh.setParam("/ar_land/pid_controller_node/resetPID", true);
     nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
     geometry_msgs::Twist msg;
     msg.linear.x = 0;
@@ -148,7 +149,7 @@ bool trajectory_planner_node::state_change(ar_land::flight_state_changeRequest &
 
 void trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 {
-  float vel = 0.05; // [m/s]
+  float vel = 0.2; // [m/s]
   if(!traj_started)
   {
     start_position_in_board = goal_position_in_board;
@@ -173,7 +174,8 @@ void trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
     timer.setPeriod(ros::Duration(0),true);
     // the following is actually not very nice and should be done in the Landing Case
     geometry_msgs::Twist control_out;
-
+    nh.setParam("/ar_land/pid_controller_node/resetPID", true);
+    nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
     control_out.linear.z = 0;
     control_out.linear.x = 0;
     control_out.linear.y = 0;
@@ -183,7 +185,7 @@ void trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
     ROS_INFO("Landing accomplished");
 
   }
-
+/*
 
   tf::StampedTransform board_to_goal_tf;
 
@@ -204,7 +206,11 @@ void trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   world_to_goal_tf.stamp_ = board_to_goal_tf.stamp_;
 
   tf_br.sendTransform(world_to_goal_tf);
-
+  geometry_msgs::PoseStamped pose_goal_in_world_msg;
+  tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
+  tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
+  pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
+*/
 }
 
 void trajectory_planner_node::getValue(const geometry_msgs::Twist &msg){
@@ -276,22 +282,22 @@ void trajectory_planner_node::run(double frequency)
 
 void trajectory_planner_node::setGoalinWorld(const ros::TimerEvent& e) {
 
-  if(flight_state == Automatic)
-  {
+  //if(flight_state == Automatic)
+  //{
     tf::StampedTransform world_to_board_tf;
     tf::StampedTransform world_to_goal_tf;
     tf::Transform board_to_goal;
 
     try{
-      tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf); // tf which is set up in parameter server
+      tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf); // tf which comes from the camera
     }
     catch (tf::TransformException &ex) {
-      ROS_ERROR("%s",ex.what());
+
       ros::Duration(1.0).sleep();
     }
 
-    // The Goal follows ROS conventions (Z axis up, X to the right and Y to the front)
-    // We set the goal above the world coordinate frame (our marker)
+    if(!world_to_board_tf.child_frame_id_.empty())
+    {
 
     board_to_goal.setIdentity();
 
@@ -314,7 +320,9 @@ world_to_goal_tf.setData(world_to_board_tf*board_to_goal);
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
-  }
+    }
+  //}
+
 }
 
 

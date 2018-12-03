@@ -89,8 +89,8 @@ void pid_controller_node::goalChanged(
     const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
   pose_goal_in_world_msg = *msg;
-  nh.param<bool>("/ar_land/pid_controller_node/controller_enabled", controller_enabled, false);
-  pid_controller_node::pidStart();
+  //nh.param<bool>("/ar_land/pid_controller_node/controller_enabled", controller_enabled, false);
+  //pid_controller_node::pidStart();
 }
 
 void pid_controller_node::pidReset()
@@ -123,6 +123,11 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
   nh.param<bool>("/ar_land/pid_controller_node/controller_enabled", controller_enabled, false);
 
   if(controller_enabled){
+
+    if(!controller_started)
+    {
+      pid_controller_node::pidStart();
+    }
 
     bool marker_found = true;               //TODO: actually an information about whether a marker is detected at this current time / the transform is up to date would be needed
     tf::StampedTransform tf_world_to_drone;
