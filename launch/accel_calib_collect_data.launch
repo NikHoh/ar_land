@@ -20,9 +20,9 @@
 
 <group ns = "ar_land" >
   <!-- Computes average values of imu accelerations. -->
-  <node name="accel_calib_test_node" pkg="ar_land" type="accel_calib_test_node" output="screen">
+  <node name="accel_calib_node" pkg="ar_land" type="accel_calib_node" output="screen">
     <param name="imu_topic_name" value="/crazyflie/imu" />
-    <param name="buffer_length" value="25" />
+    <param name="num_values" value="500" />
   </node>
 </group>
 

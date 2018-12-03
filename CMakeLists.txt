@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV)
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -147,6 +149,8 @@ add_executable(state_admin_node src/state_admin_node.cpp include/ar_land/state_a
 target_link_libraries(state_admin_node ${catkin_LIBRARIES})
 add_executable(accel_calib_test_node src/accel_calib_test_node.cpp)
 target_link_libraries(accel_calib_test_node ${catkin_LIBRARIES})
+add_executable(accel_calib_node src/accel_calib_node.cpp)
+target_link_libraries(accel_calib_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.cpp include/ar_land/blind_trajectory_planner_node.hpp include/ar_land/tools.hpp)
 target_link_libraries(blind_trajectory_planner_node ${catkin_LIBRARIES})
 add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
