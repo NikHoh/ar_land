@@ -28,6 +28,7 @@ private:
 
   tf::StampedTransform cam_to_board_tf;
   tf::StampedTransform world_to_board_tf;
+  tf::StampedTransform previous_world_to_board_tf;
 
   std::string drone_frame_id;
   std::string world_frame_id;
