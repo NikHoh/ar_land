@@ -12,6 +12,12 @@
 #include <ar_land/flight_state_change.h>
 #include <ar_land/goal_change.h>
 #include <math.h>
+#include <tf2/transform_datatypes.h>
+#include <angles/angles.h>
+#include "ar_land/tools.hpp"
+#include <geometry_msgs/Accel.h>
+#include <ar_land/PosVelAcc.h>
+
 
 
 
@@ -49,6 +55,7 @@ private:
 
   // Publisher
   ros::Publisher pose_goal_in_world_pub;
+  ros::Publisher PosVelAcc_pub;
 
   // Services
   ros::ServiceServer flight_state_change_srv;
@@ -67,6 +74,7 @@ private:
 
   std::string T_cam_board_topic;
   std::string pose_goal_in_world_topic;
+  std::string PosVelAcc_topic;
   ros::Publisher control_out_pub;
   ros::Subscriber control_out_sub;
   State flight_state;
@@ -82,9 +90,13 @@ private:
 
 
   tf::Vector3 goal_position_in_board;
+  tf::Vector3 twist_goal_in_board;
+  tf::Vector3 accel_goal_in_board;
 
   float last_thrust;
   float thrust;
+
+
 
 };
 
