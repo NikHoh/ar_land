@@ -79,7 +79,11 @@ private:
 
   tf::Vector3 v_actual;
   tf::Vector3 x_actual;
+<<<<<<< HEAD
   tf::Vector3 x_actual_prev;
+=======
+
+>>>>>>> 184255fae885beadac5afd000ebdd6dc7f861aa9
 
 
 

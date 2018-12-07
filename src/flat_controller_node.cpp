@@ -30,6 +30,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   , pose_goal_in_world_sub()
   , PosVelAcc_sub()
   , controller_started(false)
+
   , x_actual_prev(null)
   , resetPID(false)
 
@@ -169,6 +170,7 @@ void flat_controller_node::getActualPosVel(){
 
   }
 
+
   x_actual = tf_world_to_drone.getOrigin();
   if(x_actual_prev == null) {                           // also sufficient if one lands several times ? maybe needs to be reseted better
     x_actual_prev = x_actual;
@@ -177,6 +179,7 @@ void flat_controller_node::getActualPosVel(){
 
 
   x_actual_prev = x_actual;
+
 }
 
 void flat_controller_node::dynamic_reconfigure_callback(
