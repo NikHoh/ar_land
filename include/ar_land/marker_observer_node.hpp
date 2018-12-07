@@ -41,6 +41,8 @@ private:
   // Subscribers
   ros::Subscriber T_cam_board_sub;
 
+  bool observed_board;
+
 };
 
 
