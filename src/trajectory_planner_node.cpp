@@ -1,7 +1,5 @@
 #include "ar_land/trajectory_planner_node.hpp"
-#include <tf2/transform_datatypes.h>
-#include <angles/angles.h>
-#include "ar_land/tools.hpp"
+
 
 trajectory_planner_node::trajectory_planner_node()
   : flight_state(Idle)
@@ -13,7 +11,8 @@ trajectory_planner_node::trajectory_planner_node()
   ros::NodeHandle n("~");
   // reads parameter with name (1) from parameter server and saves it in name (2), if not found default is (3)
   n.param<std::string>("T_cam_board_topic", T_cam_board_topic, "/ar_single_board/transform");
-  n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/T_world_goal_topic");
+  n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/pose_goal_in_world_topic");
+  n.param<std::string>("PosVelAcc_topic", PosVelAcc_topic, "/ar_land/PosVelAcc_topic");
   n.param<std::string>("world_frame_id", world_frame_id, "/world");
   n.param<std::string>("drone_frame_id", drone_frame_id, "/crazyflie/base_link");
   n.param<std::string>("goal_frame_id", goal_frame_id, "/crazyflie/goal");
@@ -26,6 +25,7 @@ trajectory_planner_node::trajectory_planner_node()
 
   // Publishers
   pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // states that pose_goal_in_world_pub publishes to topic (1)
+  PosVelAcc_pub = nh.advertise<ar_land::PosVelAcc>(PosVelAcc_topic, 1);
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
   //Services
@@ -36,6 +36,8 @@ trajectory_planner_node::trajectory_planner_node()
   frequency = 50;
   traj_started = false;
   dt = 0;
+
+
 
 }
 
@@ -166,6 +168,8 @@ void trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   double t_ratio = dt/t_d;
 
   goal_position_in_board = P_0 + (P_d-P_0)*(3*pow(t_ratio,2) - 2*pow(t_ratio,3));
+  twist_goal_in_board = 6*(P_d-P_0)*(dt/pow(t_d,2)-pow(t_ratio,2)/t_d);
+  accel_goal_in_board = 6*(P_d-P_0)*(1/pow(t_d,2)-2*dt/pow(t_d,3));
 
 
   if(t_ratio > 1) {
@@ -312,6 +316,7 @@ world_to_goal_tf.setData(world_to_board_tf*board_to_goal);
 
 
 
+
     tf_br.sendTransform(world_to_goal_tf);
 
     geometry_msgs::TransformStamped T_world_goal_msg;
@@ -320,6 +325,30 @@ world_to_goal_tf.setData(world_to_board_tf*board_to_goal);
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
+
+    // for flat controller there are some other topics needed:
+
+// TODO: twist goal in world -- topic und sub killen
+    //postition_in_goal vel und acc in world umrechnen
+    // in neue msgs stecken
+    // publishen für Flat controller
+
+tf::Vector3 position_in_world;
+tf::Vector3 twist_in_world;
+tf::Vector3 accel_in_world;
+
+position_in_world = world_to_board_tf.getBasis()*goal_position_in_board;
+twist_in_world = world_to_board_tf.getBasis()*twist_goal_in_board;
+accel_in_world = world_to_board_tf.getBasis()*accel_goal_in_board;
+
+ar_land::PosVelAcc posVelAcc_in_world;
+
+tf::vector3TFToMsg(position_in_world,posVelAcc_in_world.position);
+tf::vector3TFToMsg(position_in_world,posVelAcc_in_world.twist);
+tf::vector3TFToMsg(position_in_world,posVelAcc_in_world.acc);
+
+
+PosVelAcc_pub.publish(posVelAcc_in_world);
     }
   //}
 

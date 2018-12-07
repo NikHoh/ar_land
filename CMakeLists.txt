@@ -51,11 +51,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   FILES
+   PosVelAcc.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
  add_service_files(
@@ -75,6 +75,8 @@ find_package(catkin REQUIRED COMPONENTS
  generate_messages(
    DEPENDENCIES
    std_msgs
+   geometry_msgs
+
  )
 
 ################################################
@@ -150,18 +152,21 @@ add_executable(blind_trajectory_planner_node src/blind_trajectory_planner_node.c
 target_link_libraries(blind_trajectory_planner_node ${catkin_LIBRARIES})
 add_executable(trajectory_planner_node src/trajectory_planner_node.cpp include/ar_land/trajectory_planner_node.hpp include/ar_land/tools.hpp)
 target_link_libraries(trajectory_planner_node ${catkin_LIBRARIES})
-
+add_executable(flat_controller_node src/flat_controller_node.cpp include/ar_land/flat_controller_node.hpp include/ar_land/pid.hpp)
+target_link_libraries(flat_controller_node ${catkin_LIBRARIES})
+add_executable(marker_observer_node src/marker_observer_node.cpp include/ar_land/marker_observer_node.hpp)
+target_link_libraries(marker_observer_node ${catkin_LIBRARIES})
 add_executable(joy_control src/joy_control.cpp)
 target_link_libraries(joy_control ${catkin_LIBRARIES})
 
 add_dependencies(blind_trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(trajectory_planner_node ar_land_generate_messages_cpp) ## so that first services will be built
+add_dependencies(flat_controller_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(state_admin_node ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(joy_control ar_land_generate_messages_cpp) ## so that first services will be built
 add_dependencies(pid_controller_node ${PROJECT_NAME}_gencfg) ## add dynamic reconfigure dependency
 
-add_executable(marker_observer_node src/marker_observer_node.cpp include/ar_land/marker_observer_node.hpp)
-target_link_libraries(marker_observer_node ${catkin_LIBRARIES})
+
 
 
 ## Rename C++ executable without prefix
