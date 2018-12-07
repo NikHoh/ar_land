@@ -11,9 +11,11 @@
 #include <std_srvs/Empty.h>
 #include <geometry_msgs/Twist.h>
 #include "ar_land/pid.hpp"
+#include "ar_land/tools.hpp"
 #include <dynamic_reconfigure/server.h>
 #include <ar_land/dynamic_param_configConfig.h>
 #include <ar_land/PosVelAcc.h>
+#include <sensor_msgs/Imu.h>
 
 
 class flat_controller_node
@@ -35,6 +37,7 @@ private:
   // Functions
   double get(const ros::NodeHandle& n, const std::string& name);
   void receiveTrajectory(const ar_land::PosVelAcc::ConstPtr& msg);
+  void receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg);
   void pidReset();
   void pidStart();
   void getActualPosVel();
@@ -44,6 +47,7 @@ private:
   // Subscribers
   //ros::Subscriber pose_goal_in_world_sub;
   ros::Subscriber PosVelAcc_sub;
+  ros::Subscriber imuData_sub;
 
 
   // Publisher
@@ -67,6 +71,7 @@ private:
   //PID pid_z;
   PID pid_yaw;
   ar_land::PosVelAcc posVelAcc_goal_in_world_msg;
+  sensor_msgs::Imu imuData_msg;
 
   dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig> m_server;
 
@@ -79,13 +84,12 @@ private:
 
   tf::Vector3 v_actual;
   tf::Vector3 x_actual;
-<<<<<<< HEAD
-  tf::Vector3 x_actual_prev;
-=======
+  tf::Vector3 x_obs;
+  tf::Vector3 v_obs;
+  tf::Vector3 v_obs_prev;
+  tf::Vector3 x_obs_prev;
 
->>>>>>> 184255fae885beadac5afd000ebdd6dc7f861aa9
-
-
+  ros::Time prev_time;
 
 
 };

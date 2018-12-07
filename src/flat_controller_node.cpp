@@ -26,18 +26,21 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
       func::get(n, "PIDs/Yaw/integratorMin"),
       func::get(n, "PIDs/Yaw/integratorMax"),
       "yaw")
-  , pose_goal_in_world_msg()
-  , pose_goal_in_world_sub()
+  //, pose_goal_in_world_msg()
+  //, pose_goal_in_world_sub()
   , PosVelAcc_sub()
   , controller_started(false)
-
-  , x_actual_prev(null)
   , resetPID(false)
 
   // Body of class definition
 {
 
   ros::NodeHandle nh;
+
+  //initialization
+  K_x.setValue(18.5,0,0,0,-19.5,0,0,0,6000);
+  K_v.setValue(9.5,0,0,0,-9.5,0,0,0,7000);
+  x_obs_prev.setValue(100000.0,0.0,0.0);
 
   // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -46,6 +49,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   // Subscribers
   //pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &flat_controller_node::goalChanged, this);
   PosVelAcc_sub = nh.subscribe("/ar_land/PosVelAcc_topic", 1, &flat_controller_node::receiveTrajectory, this);
+  imuData_sub = nh.subscribe("/crazyflie/imu", 1, &flat_controller_node::receiveIMUdata, this);
 
 
   //dynamic reconfigure
@@ -66,6 +70,11 @@ void flat_controller_node::run(double frequency)
 void flat_controller_node::receiveTrajectory(const ar_land::PosVelAcc::ConstPtr& msg)
 {
   posVelAcc_goal_in_world_msg = *msg;
+}
+
+void flat_controller_node::receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg)
+{
+  imuData_msg = *msg;
 }
 
 void flat_controller_node::pidReset()
@@ -105,8 +114,9 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     }
 
     flat_controller_node::getActualPosVel();
-
-
+    tf::Vector3 g_vec;
+    g_vec.setValue(0,0,9.81);
+    a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_obs) + K_v*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs) + g_vec;
 
       /*
       geometry_msgs::PoseStamped pose_goal_in_world;
@@ -148,7 +158,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
   nh.getParam("/ar_land/flat_controller_node/resetPID", resetPID);
   if(resetPID)
   {
-    flatS_controller_node::pidReset();
+    flat_controller_node::pidReset();
     resetPID = false;
   }
 
@@ -157,8 +167,6 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 }
 
 void flat_controller_node::getActualPosVel(){
-
-
 
   tf::StampedTransform tf_world_to_drone;
   try{
@@ -172,13 +180,31 @@ void flat_controller_node::getActualPosVel(){
 
 
   x_actual = tf_world_to_drone.getOrigin();
-  if(x_actual_prev == null) {                           // also sufficient if one lands several times ? maybe needs to be reseted better
-    x_actual_prev = x_actual;
+  if(x_obs_prev.x() == 100000.0){                           // bessere Initialisierung überlegen. Also sufficient if one lands several times ? maybe needs to be reseted better
+    x_obs_prev = x_actual;
+    prev_time = ros::Time::now();
   }
-  v_actual = (x_actual - x_actual_prev)*30;
+  float dt = ros::Time::now().toSec() - prev_time.toSec();
 
 
-  x_actual_prev = x_actual;
+  tf::Vector3 imuData;
+  imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration);
+
+  // observer for velocities
+  float l1 = 1.4;
+  float l2 = 14.7;
+
+  tf::Vector3 vec_u_plus_l2y = imuData + l2*(x_actual - x_obs_prev);
+  v_obs = v_obs_prev + vec_u_plus_l2y*dt;
+
+  tf::Vector3 vec_v_obs_plus_l1y = v_obs + l1*(x_actual - x_obs_prev);
+  x_obs = x_obs_prev + vec_v_obs_plus_l1y*dt;
+
+  v_obs_prev = v_obs;
+  x_obs_prev = x_obs;
+  prev_time = ros::Time::now();
+
+  ROS_INFO("v_obs = %f, x_obs = %f, x_actual = %f", (float)v_obs.x(), (float)x_obs.x(), (float)x_actual.x());
 
 }
 

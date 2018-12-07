@@ -2,10 +2,17 @@
 #define TOOLS_H
 
 #include <ros/ros.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf/tf.h>
 
 namespace tools_func {
 
-
+tf::Vector3 convertToTFVector3(geometry_msgs::Vector3 vec)
+{
+  tf::Vector3 out;
+  out.setValue(vec.x,vec.y,vec.z);
+  return out;
+}
 
 bool isIdentity(const geometry_msgs::TransformStamped &msg){
   bool transIsId = false;

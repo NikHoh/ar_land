@@ -16,7 +16,9 @@
   <arg name="camera_calibration" default="file://$(find ar_nav)/data/crazyflie_runcam.yaml"/>
 	<arg name="image_undist" default="image_rect_color"/>  
   <!-- <arg name="uri" default="radio://0/120/2M/E7E7E7E701" /> --> <!-- Niko's Drohne -->
-   <arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> <!-- Philipps Drohne -->
+  <arg name="uri" default="radio://0/110/2M/E7E7E7E702" />  <!-- Philipps Drohne -->
+  <!-- <arg name="uri" default="radio://0/110/2M/E7E7E7E703" /> --> <!-- Maurice's Drohne -->
+  <!-- <arg name="uri" default="radio://0/80/250K/E7E7E7E7E7" />--> <!-- Johannes' Drohne -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="use_controller" default="true"/>
   <arg name="publish_tf" default="false" />
@@ -81,7 +83,11 @@
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri)" />
       <arg name="tf_prefix" value="crazyflie" />
-      <arg name="enable_logging" value="True" />
+      <arg name="enable_logging" value="False" />
+      <!-- this error is thrown if logging is enabled:
+          terminate called after throwing an instance of 'std::runtime_error'
+          what():  Could not find pm.vbat in log toc! -->
+
     </include>
 
     <!-- Launch Joystick tools -->
