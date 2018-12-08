@@ -15,7 +15,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   message_generation
   dynamic_reconfigure
+  cv_bridge
+  image_transport
 )
+
+find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -108,7 +112,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES ar_land
-  CATKIN_DEPENDS roscpp rospy std_msgs tf message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs tf message_runtime cv_bridge image_transport
 #  DEPENDS system_lib
 )
 
@@ -163,6 +167,8 @@ add_dependencies(pid_controller_node ${PROJECT_NAME}_gencfg) ## add dynamic reco
 add_executable(marker_observer_node src/marker_observer_node.cpp include/ar_land/marker_observer_node.hpp)
 target_link_libraries(marker_observer_node ${catkin_LIBRARIES})
 
+add_executable(fisheye_rectification_node src/fisheye_rectification_node.cpp include/ar_land/fisheye_rectification_node.hpp)
+target_link_libraries(fisheye_rectification_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
