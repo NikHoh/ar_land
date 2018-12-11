@@ -16,6 +16,7 @@
 #include <ar_land/dynamic_param_configConfig.h>
 #include <ar_land/PosVelAcc.h>
 #include <sensor_msgs/Imu.h>
+#include <ar_land/PosVelAcc.h>
 
 
 class flat_controller_node
@@ -53,6 +54,7 @@ private:
   // Publisher
   ros::Publisher control_out_pub;
   ros::Publisher control_error_pub;
+  ros::Publisher posVelAcc_pub;
 
 
   // Variables

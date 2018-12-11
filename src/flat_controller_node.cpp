@@ -45,6 +45,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   control_error_pub = nh.advertise<geometry_msgs::Vector3>("control_error_topic", 1);
+  posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>("observed_pos_vel", 1);
 
   // Subscribers
   //pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &flat_controller_node::goalChanged, this);
@@ -105,7 +106,7 @@ void flat_controller_node::pidStart()
 void flat_controller_node::iteration(const ros::TimerEvent& e)
 {
   nh.param<bool>("/ar_land/flat_controller_node/controller_enabled", controller_enabled, false);
-
+  flat_controller_node::getActualPosVel(); // zu Testzwecken hier
   if(controller_enabled){
 
     if(!controller_started)
@@ -113,7 +114,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
       flat_controller_node::pidStart();
     }
 
-    flat_controller_node::getActualPosVel();
+    //flat_controller_node::getActualPosVel();
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_obs) + K_v*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs) + g_vec;
@@ -168,6 +169,8 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
 void flat_controller_node::getActualPosVel(){
 
+
+
   tf::StampedTransform tf_world_to_drone;
   try{
     tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -186,25 +189,42 @@ void flat_controller_node::getActualPosVel(){
   }
   float dt = ros::Time::now().toSec() - prev_time.toSec();
 
-
+  float gravitiy = 9.7; // nur zur veranschaulichung
   tf::Vector3 imuData;
-  imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration);
+  imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and substract local gravity -> z-value in in ground position calib am Anfgang...
+  //tf::Transform rotate_Data(tf_world_to_drone.getRotation());
+  //tf::Quaternion rot = tf_world_to_drone.getRotation();
+  imuData = tf_world_to_drone*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
+  imuData.setZ(imuData.getZ()-gravitiy);
 
   // observer for velocities
   float l1 = 1.4;
   float l2 = 14.7;
 
-  tf::Vector3 vec_u_plus_l2y = imuData + l2*(x_actual - x_obs_prev);
-  v_obs = v_obs_prev + vec_u_plus_l2y*dt;
+  //tf::Vector3 vec_u_plus_l2y = imuData + l2*(x_actual - x_obs_prev);  //phillip
+  //v_obs = v_obs_prev + vec_u_plus_l2y*dt;
 
-  tf::Vector3 vec_v_obs_plus_l1y = v_obs + l1*(x_actual - x_obs_prev);
-  x_obs = x_obs_prev + vec_v_obs_plus_l1y*dt;
+  //tf::Vector3 vec_v_obs_plus_l1y = v_obs + l1*(x_actual - x_obs_prev);
+  //x_obs = x_obs_prev + vec_v_obs_plus_l1y*dt;
+
+  //dinu
+
+  tf::Vector3 x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*imuData + l1*x_actual;  // eventuell so ändern, dass für Geschwindigkeit aktuelle Position besser genutzt wird?!
+  tf::Vector3 v_obs = v_obs_prev + dt*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
 
   v_obs_prev = v_obs;
   x_obs_prev = x_obs;
   prev_time = ros::Time::now();
 
-  ROS_INFO("v_obs = %f, x_obs = %f, x_actual = %f", (float)v_obs.x(), (float)x_obs.x(), (float)x_actual.x());
+  //ROS_INFO("v_obs = %f, x_obs = %f, x_actual = %f", (float)v_obs.x(), (float)x_obs.x(), (float)x_actual.x());
+  ar_land::PosVelAcc posVelAcc_in_world;
+
+  tf::vector3TFToMsg(x_obs,posVelAcc_in_world.position);
+  tf::vector3TFToMsg(v_obs,posVelAcc_in_world.twist);
+  tf::vector3TFToMsg(imuData,posVelAcc_in_world.acc);
+
+
+  posVelAcc_pub.publish(posVelAcc_in_world);
 
 }
 
