@@ -1,5 +1,6 @@
 #include "ar_land/fisheye_rectification_node.hpp"
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/aruco.hpp>
 
 
 
@@ -20,7 +21,7 @@ void FishEyeRectifier::cam_info_callback(const sensor_msgs::CameraInfoConstPtr& 
   distortion_coeff = cv::Mat(1,4,CV_64FC1, (void *) msg->D.data()); // only for fisheye, check this before
   rectification_matrix = cv::Mat(3,3,CV_64FC1, (void *) msg->R.data());
   projection_matrix = cv::Mat(3,4,CV_64FC1, (void *) msg->P.data());
-  image_size = cv::Size(msg->height,msg->width);
+  image_size = cv::Size(msg->width,msg->height);
 
   cv::fisheye::initUndistortRectifyMap(camera_matrix, distortion_coeff, rectification_matrix, projection_matrix,image_size, CV_32FC1,map1,map2);
   cam_info_received = true;
@@ -57,6 +58,26 @@ void FishEyeRectifier::image_callback(const sensor_msgs::ImageConstPtr &msg){
 
 }
 
+/*
+void FishEyeRectifier::detectArucoMarker(cv::Mat &inputImage){
+  //cv::Mat markerImage;
+  int markerLength = 20;  // 16 cm for ours
+  cv::cvtColor(inputImage,outpuImage,cv::COLOR_BGR2GRAY);
+  cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250); // example dictionary with 250 6x6 markers
+  //cv::aruco::drawMarker(dictionary,23,200,markerImage,1);  //only for marker creatioin
+  std::vector<int> markerIds;
+  std::vector<Point2f> markerCorners, rejectedCandidates;
+  cv::aruco::DetectorParameters parameters;
+  cv::aruco::detectMarkers(inputImage,dictionary,markerCorners,markerIds,parameters,rejectedCandidates);
+  cv::Mat outpuImage;  //same as input image
+  cv::aruco::drawDetectedMarkers(outputImage,markerCorners,markerIds);
+  std::vector<Vec3d> rvecs,tvecs;
+  //cv::aruco::estimatePoseBoard(markerCorners,markerIds,) use this
+  cv::aruco::estimatePoseSingleMarkers(markerCorners,markerLength,camera_matrix,distortion_coeff,rvecs,tvecs);
+  cv::aruco::drawAxis(outpuImage,camera_matrix,distortion_coeff,rvec,tvec,0.1); // only for single frame
+
+}
+*/
 
 int main(int argc, char **argv)
 {
