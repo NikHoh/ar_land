@@ -115,6 +115,7 @@ bool blind_trajectory_planner_node::state_change(ar_land::flight_state_changeReq
     break;
   case Emergency:
   {
+    nh.setParam("/ar_land/pid_controller_node/resetPID", true);
     nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
     geometry_msgs::Twist msg;
     msg.linear.x = 0;

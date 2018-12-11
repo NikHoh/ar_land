@@ -109,7 +109,7 @@
       <param name ="controller_enabled" type="bool" value="false"/>
       <param name = "z_integral" type = "double" value="0" />
       <param name = "resetPID" type = "bool" value="false" />
-      <rosparam command="load" file="$(find ar_nav)/data/config/crazyflie2_cam.yaml" />           <!-- TODo: PID Parameter anpassen /-->
+      <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />           <!-- TODo: PID Parameter anpassen /-->
       <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
       <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
       <remap from="goal" to="$(arg goal_topic_name)" />

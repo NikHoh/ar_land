@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 
   n.param<std::string>("drone_frame_id", drone_frame_id, "/crazyflie/base_link");
 
-  n.param<double>("frequency", frequency, 50.0);
+  n.param<double>("frequency", frequency, 30.0);
 
   pid_controller_node controller(world_frame_id, drone_frame_id, n);
   controller.run(frequency);
