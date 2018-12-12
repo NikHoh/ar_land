@@ -145,6 +145,9 @@
       <param name ="controller_enabled" type="bool" value="false"/>
       <param name = "z_integral" type = "double" value="0" />
       <param name = "resetPID" type = "bool" value="false" />
+      <param name = "x_final_in_world" type = "double" value="0" />
+      <param name = "y_final_in_world" type = "double" value="0" />
+      <param name = "z_final_in_world" type = "double" value="0" />
       <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />
       <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
       <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
@@ -191,8 +194,12 @@
 
   <!-- The Crazyflie 2.0 ROS package uses the NED convention (see: https://dev.px4.io/en/tutorials/motion-capture-vicon-optitrack.html) -->
 
-  <!-- Camera frame to crazyflie/baselink static transformation (camera looking down)-->
+  <!-- crazyflie/baselink to camera frame static transformation (camera looking down)-->
   <node pkg="tf" type="static_transform_publisher" name="drone_cam_tf_br" args="0 0 -0.02 0.707107 -0.707107 0 0  /crazyflie/base_link /cam 100"/>
+
+<!-- crazyflie/baselink to imu frame static transformation -->
+<node pkg="tf" type="static_transform_publisher" name="drone_imu_tf_br" args="0 0 0 0 0 0 1  /crazyflie/base_link /imu 100"/>
+
 
 
 </launch>

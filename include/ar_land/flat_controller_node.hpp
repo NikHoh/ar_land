@@ -24,7 +24,7 @@ class flat_controller_node
 public:
 
   ros::NodeHandle nh;
-  flat_controller_node(const std::string& worldFrame, const std::string& frame, const ros::NodeHandle& n);
+  flat_controller_node(const std::string& world_frame_id, const std::string& drone_frame_id, const std::string& imu_frame_id, const ros::NodeHandle& n);
 
   //Functions
   void run(double frequency);
@@ -41,7 +41,7 @@ private:
   void receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg);
   void pidReset();
   void pidStart();
-  void getActualPosVel();
+  void getActualPosVel(const ros::TimerEvent& e);
 
 
 
@@ -61,11 +61,13 @@ private:
   bool controller_enabled;
   bool controller_started;
   bool resetPID;
+  bool observer_init;
 
   float z_integral;
 
   std::string world_frame_id;
   std::string drone_frame_id;
+  std::string imu_frame_id;
 
   tf::TransformListener tf_lis;
   //PID pid_x;
@@ -90,8 +92,10 @@ private:
   tf::Vector3 v_obs;
   tf::Vector3 v_obs_prev;
   tf::Vector3 x_obs_prev;
+  tf::Vector3 x_actual_prev;
 
   ros::Time prev_time;
+
 
 
 };
