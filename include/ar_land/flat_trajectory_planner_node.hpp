@@ -32,7 +32,7 @@ public:
 
 private:
   // Functions
-  void setGoalinWorld(const ros::TimerEvent& e);
+  void updateBoardinWorld(const ros::TimerEvent& e);
   bool state_change(ar_land::flight_state_changeRequest &req,
                     ar_land::flight_state_changeResponse  &res);
   void getValue(const geometry_msgs::Twist &msg);
@@ -81,7 +81,9 @@ private:
 
   double frequency;
   float dt;
+  bool run_traj;
   bool traj_started;
+  bool traj_finished;
 
   tf::Vector3 start_position_in_board;
   ros::Time start_time;
@@ -90,11 +92,25 @@ private:
 
 
   tf::Vector3 goal_position_in_board;
+  tf::Vector3 board_position_in_world;
   tf::Vector3 twist_goal_in_board;
   tf::Vector3 accel_goal_in_board;
 
   float last_thrust;
   float thrust;
+
+
+  // actual velocity and acceleration
+  double xp_0, yp_0, zp_0;
+  double xpp_0, ypp_0, zpp_0;
+
+  // final position, velocity and acceleration
+  double x_f, y_f, z_f;
+  double xp_f, yp_f, zp_f;
+  double xpp_f, ypp_f, zpp_f;
+
+  float T;
+
 
 
 
