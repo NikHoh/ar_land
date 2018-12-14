@@ -43,7 +43,6 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   //initialization
   K_x.setValue(18.5,0,0,0,-19.5,0,0,0,6000);
   K_v.setValue(9.5,0,0,0,-9.5,0,0,0,7000);
-  x_obs_prev.setValue(100000.0,0.0,0.0);
 
   // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -249,10 +248,10 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
   float gravity = 9.81;
   tf::Vector3 imuData;
-  // tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
+  tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
   imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and subtract local gravity -> z-value in in ground position calib am Anfgang...
-  imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
-  // imuData = rot_world_to_drone*imuData;
+ // imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
+  imuData = rot_world_to_drone*imuData;
   imuData.setZ(imuData.getZ()-gravity);
 
   // observer for velocities
@@ -270,7 +269,7 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   //ROS_INFO("v_obs = %f, x_obs = %f, x_actual = %f", (float)v_obs.x(), (float)x_obs.x(), (float)x_actual.x());
   ar_land::PosVelAcc posVelAcc_in_world;
 
-  tf::vector3TFToMsg(x_actual,posVelAcc_in_world.position);
+  tf::vector3TFToMsg(x_obs,posVelAcc_in_world.position);
   tf::vector3TFToMsg(v_obs,posVelAcc_in_world.twist);
   tf::vector3TFToMsg(imuData,posVelAcc_in_world.acc);
 
