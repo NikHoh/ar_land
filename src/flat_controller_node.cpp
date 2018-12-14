@@ -249,8 +249,10 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
   float gravity = 9.81;
   tf::Vector3 imuData;
+  // tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
   imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and subtract local gravity -> z-value in in ground position calib am Anfgang...
   imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
+  // imuData = rot_world_to_drone*imuData;
   imuData.setZ(imuData.getZ()-gravity);
 
   // observer for velocities
