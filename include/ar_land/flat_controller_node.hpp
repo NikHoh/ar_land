@@ -47,14 +47,14 @@ private:
 
   // Subscribers
   //ros::Subscriber pose_goal_in_world_sub;
-  ros::Subscriber PosVelAcc_sub;
+  ros::Subscriber goal_posVelAcc_sub;
   ros::Subscriber imuData_sub;
 
 
   // Publisher
   ros::Publisher control_out_pub;
   ros::Publisher control_error_pub;
-  ros::Publisher posVelAcc_pub;
+  ros::Publisher obs_posVelAcc_pub;
 
 
   // Variables

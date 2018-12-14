@@ -39,6 +39,7 @@ private:
   bool goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res);
   void setTrajPoint(const ros::TimerEvent& e);
   void updateBoardPos(const ros::TimerEvent& e);
+  void receiveObserverData(const ar_land::PosVelAcc &msg);
 
 
 
@@ -53,10 +54,11 @@ private:
 
   // Subscribers
   ros::Subscriber T_cam_board_sub;
+  ros::Subscriber obs_posVelAcc_sub;
 
   // Publisher
   ros::Publisher pose_goal_in_world_pub;
-  ros::Publisher PosVelAcc_pub;
+  ros::Publisher goal_posVelAcc_pub;
 
   // Services
   ros::ServiceServer flight_state_change_srv;
@@ -75,7 +77,7 @@ private:
 
   std::string T_cam_board_topic;
   std::string pose_goal_in_world_topic;
-  std::string PosVelAcc_topic;
+  std::string goal_posVelAcc_topic;
   ros::Publisher control_out_pub;
   ros::Subscriber control_out_sub;
   State flight_state;
@@ -100,6 +102,9 @@ private:
   float last_thrust;
   float thrust;
 
+  // observed velocity and acceleration
+  double xp_obs, yp_obs, zp_obs;
+  double xpp_obs, ypp_obs, zpp_obs;
 
   // actual velocity and acceleration
   double xp_0, yp_0, zp_0;

@@ -30,7 +30,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
       "yaw")
   //, pose_goal_in_world_msg()
   //, pose_goal_in_world_sub()
-  , PosVelAcc_sub()
+  , goal_posVelAcc_sub()
   , controller_started(false)
   , resetPID(false)
   , observer_init(false)
@@ -47,11 +47,11 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   control_error_pub = nh.advertise<geometry_msgs::Vector3>("control_error_topic", 1);
-  posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>("observed_pos_vel", 1);
+  obs_posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>("obs_posVelAcc_topic", 1);
 
   // Subscribers
   //pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &flat_controller_node::goalChanged, this);
-  PosVelAcc_sub = nh.subscribe("/ar_land/PosVelAcc_topic", 1, &flat_controller_node::receiveTrajectory, this);
+  goal_posVelAcc_sub = nh.subscribe("/ar_land/goal_posVelAcc_topic", 1, &flat_controller_node::receiveTrajectory, this);
   imuData_sub = nh.subscribe("/crazyflie/imu", 1, &flat_controller_node::receiveIMUdata, this);
 
 
@@ -65,7 +65,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
 void flat_controller_node::run(double frequency)
 {
   ros::NodeHandle node;
-  ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &flat_controller_node::iteration, this);
+  //ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &flat_controller_node::iteration, this);
   ros::Timer timer_obs = node.createTimer(ros::Duration(1.0/100), &flat_controller_node::getActualPosVel, this);
   ros::spin();
 
@@ -252,7 +252,7 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and subtract local gravity -> z-value in in ground position calib am Anfgang...
  // imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
   imuData = rot_world_to_drone*imuData;
-  imuData.setZ(imuData.getZ()-gravity);
+  imuData.setZ(imuData.getZ()-gravity); //
 
   // observer for velocities
   float l1 = 1.4;
@@ -274,7 +274,7 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   tf::vector3TFToMsg(imuData,posVelAcc_in_world.acc);
 
 
-  posVelAcc_pub.publish(posVelAcc_in_world);
+  obs_posVelAcc_pub.publish(posVelAcc_in_world);
 
 }
 

@@ -148,6 +148,7 @@
       <param name = "x_final_in_world" type = "double" value="0" />
       <param name = "y_final_in_world" type = "double" value="0" />
       <param name = "z_final_in_world" type = "double" value="0" />
+      <param name="obs_posVelAcc_topic" value="/ar_land/obs_posVelAcc_topic" />
       <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />
       <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
       <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
@@ -155,23 +156,22 @@
     </node>
 
 
+<!-- flat trajectory planner node-->
+<node pkg="ar_land" type="flat_trajectory_planner_node" name="flat_trajectory_planner_node" output="screen">
+<param name="T_cam_board_topic" value="/ar_single_board/transform" />
+<param name="pose_goal_in_world_topic" value="$(arg goal_topic_name)" />
+<param name="goal_posVelAcc_topic" value="/ar_land/goal_posVelAcc_topic" />
+
+<param name="world_frame_id" value="/world" />
+<param name="drone_frame_id" value="/crazyflie/base_link" />
+<param name="goal_frame_id" value="/crazyflie/goal" />
+<param name="board_frame_id" value="/board_c3po" />
+<param name="cam_frame_id" value="/cam" />
+<param name="ar_board" value="$(arg board)" />
+<remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
+</node>
 
 
-
-        <!-- trajectory planner node-->
-  <node pkg="ar_land" type="trajectory_planner_node" name="trajectory_planner_node" output="screen">
-        <param name="T_cam_board_topic" value="/ar_single_board/transform" />
-        <param name="pose_goal_in_world_topic" value="$(arg goal_topic_name)" />
-        <param name="PosVelAcc_topic" value="/ar_land/PosVelAcc_topic" />
-
-        <param name="world_frame_id" value="/world" />
-        <param name="drone_frame_id" value="/crazyflie/base_link" />
-        <param name="goal_frame_id" value="/crazyflie/goal" />
-        <param name="board_frame_id" value="/board_c3po" />
-        <param name="cam_frame_id" value="/cam" />
-        <param name="ar_board" value="$(arg board)" />
-        <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
-  </node>
 
         <!-- marker observer node-->
         <node name="marker_observer_node" pkg="ar_land" type="marker_observer_node" output="screen">
