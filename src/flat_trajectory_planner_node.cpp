@@ -130,6 +130,13 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
 x_f = board_position_in_world.x();
 y_f = board_position_in_world.y();
 z_f = board_position_in_world.z();
+
+// timer for updating current board position while landing
+
+ros::NodeHandle node;
+
+ros::Timer timer = node.createTimer(ros::Duration(1.0/2), &flat_trajectory_planner_node::updateBoardPos, this);
+
 nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
 nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
 nh.setParam("/ar_land/flat_controller_node/z_final_in_world", z_f);
@@ -187,10 +194,32 @@ run_traj = true;
   return true;
 }
 
+void flat_trajectory_planner_node::updateBoardPos(const ros::TimerEvent& e)
+{
+  x_f = board_position_in_world.x();
+  y_f = board_position_in_world.y();
+  z_f = board_position_in_world.z();
+}
+
 void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 {
   if(run_traj)
   {
+    // actual position of drone
+
+    tf::StampedTransform tf_world_to_drone;
+    try{
+      tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+    }
+    catch(tf::TransformException &ex)
+    {
+      ROS_INFO("No Transformation from World to Drone found");
+
+    }
+
+    double x_0 = tf_world_to_drone.getOrigin().x();
+    double y_0 = tf_world_to_drone.getOrigin().y();
+    double z_0 = tf_world_to_drone.getOrigin().z();
 
   float vel = 0.2; // [m/s]
   if(!traj_started)
@@ -198,7 +227,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
     //start_position_in_board = goal_position_in_board;
     start_time = ros::Time::now();
     traj_started = true;
-    T = start_position_in_board.length()/vel; // start_position_in_board überarbeiten
+    T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
   }
 
   if(!traj_finished)
@@ -209,21 +238,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   {
     t = T; // ensures that last point of trajectory is calculated properly
   }
-  // actual position of drone
 
-  tf::StampedTransform tf_world_to_drone;
-  try{
-    tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
-  }
-  catch(tf::TransformException &ex)
-  {
-    ROS_INFO("No Transformation from World to Drone found");
-
-  }
-
-  double x_0 = tf_world_to_drone.getOrigin().x();
-  double y_0 = tf_world_to_drone.getOrigin().y();
-  double z_0 = tf_world_to_drone.getOrigin().z();
 
   // x trajectory
 
@@ -324,6 +339,15 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
      PosVelAcc_pub.publish(posVelAcc_in_world);
 
   }
+
+  // debug: sendTransform from world to set traj point
+
+  tf::StampedTransform traj_debug;
+  traj_debug.frame_id_ = world_frame_id;
+  traj_debug.child_frame_id_ = goal_frame_id;
+  traj_debug.stamp_ = ros::Time::now();
+
+  tf_br.sendTransform(traj_debug);
 
 }
 
