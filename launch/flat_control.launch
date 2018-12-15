@@ -15,8 +15,8 @@
         <arg name="camera_fps" default="30"/>
   <arg name="camera_calibration" default="file://$(find ar_nav)/data/crazyflie_runcam.yaml"/>
         <arg name="image_undist" default="image_rect_color"/>
-  <!--<arg name="uri" default="radio://0/120/2M/E7E7E7E701" />   Niko's Drohne -->
-   <arg name="uri" default="radio://0/110/2M/E7E7E7E702" />  <!--Philipps Drohne -->
+  <arg name="uri" default="radio://0/120/2M/E7E7E7E701" />    <!--Niko's Drohne -->
+   <!--<arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> Philipps Drohne -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="use_controller" default="true"/>
   <arg name="publish_tf" default="false" />
@@ -200,6 +200,12 @@
 <!-- crazyflie/baselink to imu frame static transformation -->
 <node pkg="tf" type="static_transform_publisher" name="drone_imu_tf_br" args="0 0 0 0 0 0 1  /crazyflie/base_link /imu 100"/>
 
+<!-- debug transformation from world to drone-->
+<node pkg="tf" type="static_transform_publisher" name="world_drone_tf_br" args="0 0 0 0 0 0 1 /world /crazyflie/base_link 100"/>
+
+
+<!-- debug transformation from world to board-->
+<node pkg="tf" type="static_transform_publisher" name="world_board_tf_br" args="-0.2 0 0 0 0 0 1 /world /board_c3po 100"/>
 
 
 </launch>

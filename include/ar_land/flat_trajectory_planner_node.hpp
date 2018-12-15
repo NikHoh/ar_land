@@ -88,6 +88,8 @@ private:
   bool traj_started;
   bool traj_finished;
 
+  bool calc_traj_with_real_values;
+
   tf::Vector3 start_position_in_board;
   ros::Time start_time;
 
@@ -106,7 +108,8 @@ private:
   double xp_obs, yp_obs, zp_obs;
   double xpp_obs, ypp_obs, zpp_obs;
 
-  // actual velocity and acceleration
+  // actual position, velocity and acceleration
+  double x_0, y_0, z_0;
   double xp_0, yp_0, zp_0;
   double xpp_0, ypp_0, zpp_0;
 
