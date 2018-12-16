@@ -17,8 +17,6 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   : world_frame_id(world_frame_id)
   , drone_frame_id(drone_frame_id)
   , imu_frame_id(imu_frame_id)
-  , control_out_pub()
-  , tf_lis()
   , pid_yaw(
       func::get(n, "PIDs/Yaw/kp"),
       func::get(n, "PIDs/Yaw/kd"),
@@ -28,9 +26,6 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
       func::get(n, "PIDs/Yaw/integratorMin"),
       func::get(n, "PIDs/Yaw/integratorMax"),
       "yaw")
-  //, pose_goal_in_world_msg()
-  //, pose_goal_in_world_sub()
-  , goal_posVelAcc_sub()
   , controller_started(false)
   , resetPID(false)
   , observer_init(false)
@@ -238,7 +233,7 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
 
   x_actual = tf_world_to_drone.getOrigin();
-  if(!observer_init){                           // bessere Initialisierung überlegen. Also sufficient if one lands several times ? maybe needs to be reseted better
+  if(!observer_init){                           // bessere Initialisierung überlegen. Also sufficient if one lands several times ? maybe needs to be reset better
     x_obs_prev = x_actual;
     x_actual_prev = x_actual;
     prev_time = ros::Time::now();
@@ -302,6 +297,26 @@ void flat_controller_node::dynamic_reconfigure_callback(
 
 }
 
+tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking_room){
+  //assume down-direction of IMU estimation to be correct
+  tf::Matrix3x3 imuRot(tf_by_imu.getRotation());
+  tf::Matrix3x3 trackRot(tf_by_tracking_room.getRotation());
+
+  ROS_INFO("imu :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",imuRot[0].getX(),imuRot[0].getY(),imuRot[0].getZ(),imuRot[1].getX(),imuRot[1].getY(),imuRot[1].getZ(),imuRot[2].getX(),imuRot[2].getY(),imuRot[2].getZ());
+  ROS_INFO("track :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",trackRot[0].getX(),trackRot[0].getY(),trackRot[0].getZ(),trackRot[1].getX(),trackRot[1].getY(),trackRot[1].getZ(),trackRot[2].getX(),trackRot[2].getY(),trackRot[2].getZ());
+
+  tf::Vector3 bz_star = imuRot.getColumn(2);
+  tf::Vector3 bx = trackRot.getColumn(0);
+  tf::Vector3 by_star = bz_star.cross(bx);
+  by_star.normalize();
+  tf::Vector3 bx_star = by_star.cross(bz_star);
+  bx_star.normalize();
+
+  tf::Matrix3x3 fusedRotation = tf::Matrix3x3(bx_star.getX(),by_star.getX(),bz_star.getX(),bx_star.getY(),by_star.getY(),bz_star.getY(),bx_star.getZ(),by_star.getZ(),bz_star.getZ());
+  ROS_INFO("fused :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",fusedRotation[0].getX(),fusedRotation[0].getY(),fusedRotation[0].getZ(),fusedRotation[1].getX(),fusedRotation[1].getY(),fusedRotation[1].getZ(),fusedRotation[2].getX(),fusedRotation[2].getY(),fusedRotation[2].getZ());
+  return fusedRotation;
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "flat_controller_node");
@@ -312,6 +327,7 @@ int main(int argc, char **argv)
   std::string drone_frame_id;
   std::string imu_frame_id;
   double frequency;
+
 
   n.param<std::string>("world_frame_id", world_frame_id, "/world"); // liest Parameter (1) vom Parameter Server aus und speichert in (2)
 
