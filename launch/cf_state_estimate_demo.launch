@@ -12,9 +12,10 @@
             <param name="uri" value="$(arg uri)" />
             <param name="tf_prefix" value="crazyflie" />
             <rosparam>
-                genericLogTopics: ["log_state_estimate_rpy"]
-                genericLogTopicFrequencies: [30]
+                genericLogTopics: ["log_state_estimate_rpy", "log_state_estimate_quat"]
+                genericLogTopicFrequencies: [30, 30]
                 genericLogTopic_log_state_estimate_rpy_Variables: ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw"]
+                genericLogTopic_log_state_estimate_quat_Variables: ["stabilizer.qx", "stabilizer.qy", "stabilizer.qz", "stabilizer.qw"]
             </rosparam>
         </node>
 
