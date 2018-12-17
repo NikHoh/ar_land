@@ -63,7 +63,7 @@ void accel_calib_node::imu_cb(const sensor_msgs::Imu::ConstPtr& msg){
 
 void accel_calib_node::save_all() {
   std::ofstream file;
-  file.open ("~/calib-data.csv");
+  file.open ("/home/johannes/calib-data.csv", std::ofstream::out | std::ofstream::app);
   file << "x,y,z\n";
 
   for (int i=0; i<out_buffer.size(); i++) {
@@ -119,7 +119,11 @@ void accel_calib_node::keyLoop()
         break;
       case KEYCODE_S:
         ROS_DEBUG("Saving values ...");
-        save_all();
+        try {
+            save_all();
+        } catch (const std::exception &exc) {
+            ROS_INFO("%s", exc.what());
+        }
         ros::shutdown();
         break;
     }
