@@ -17,6 +17,7 @@
 #include "ar_land/tools.hpp"
 #include <geometry_msgs/Accel.h>
 #include <ar_land/PosVelAcc.h>
+#include <sensor_msgs/Imu.h>
 
 
 
@@ -35,7 +36,7 @@ private:
   void updateBoardinWorld();
   bool state_change(ar_land::flight_state_changeRequest &req,
                     ar_land::flight_state_changeResponse  &res);
-  void getValue(const geometry_msgs::Twist &msg);
+  void getImuAccelZ(const sensor_msgs::Imu::ConstPtr& msg);
   bool goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res);
   void setTrajPoint(const ros::TimerEvent& e);
   void updateGoalPos();
@@ -87,7 +88,6 @@ private:
   bool run_traj;
   bool traj_started;
   bool traj_finished;
-  bool landing;
 
   bool calc_traj_with_real_values;
 
@@ -102,8 +102,8 @@ private:
   tf::Vector3 twist_goal_in_board;
   tf::Vector3 accel_goal_in_board;
 
-  float last_thrust;
-  float thrust;
+  float last_accel_z;
+  float accel_z;
 
   // observed velocity and acceleration
   double xp_obs, yp_obs, zp_obs;

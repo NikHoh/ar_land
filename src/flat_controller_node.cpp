@@ -115,7 +115,6 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual) + K_v*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs) + g_vec;
-ROS_INFO("a_ref: x: %f y: %f z: %f ", a_ref.x(), a_ref.y(), a_ref.z());
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
