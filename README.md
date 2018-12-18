@@ -55,7 +55,7 @@ Also the custom firmware for the crazyflie is required:
 
 ## Usage
 
-Print the marker boards provided in the [data](data) folder. Use a calibrated printer so the markers have the correct measurement.
+Print the marker board provided in the [data](data) folder. Use a calibrated printer so the markers have the correct measurement.
 
 Our board configurations are named after the robots of our lab (we attach the marker boards on top of them).
 
@@ -72,17 +72,7 @@ Our board configurations are named after the robots of our lab (we attach the ma
 - Coordinate system = located in the center of the marker. Holding the marker board in your hands and looking straigth to it with ID0 on the top left corner: X axis right, Y axis up and Z axis coming out of the marker plane.
 - Yaml file for ar_sys: [board_c3po.yml](data/board_c3po.yml)
 
-### R2D2:
-
-<img src="data/r2d2/r2d2_board.png" width=300>
-
-- Top Left corner: ID4
-- Top Right corner: ID5
-- Bottom Left corner: ID6
-- Bottom Right corner: ID7
-- Aruco marker Size = 16 cm
-- Yaml file for ar_sys: [board_r2d2.yml](data/board_r2d2.yml)
 
 ### Wide-Angle-Lense Camera Calibration
 
-For the calibration of the Fx797T shutter cam we provide a python script to get the camera parameters. The ROS package [camera_calibration](http://wiki.ros.org/camera_calibration) might be helpful to get good images. Put them in a folder an run the calibrate.py script inside.
+For the calibration of the Fx797T shutter cam we provide a python script to get the camera parameters. The ROS package [camera_calibration](http://wiki.ros.org/camera_calibration) GUI and documentation might be helpful to get good images. Put them in a folder an run the calibrate.py script from [data](data) inside.
