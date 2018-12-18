@@ -32,13 +32,13 @@ public:
 
 private:
   // Functions
-  void updateBoardinWorld(const ros::TimerEvent& e);
+  void updateBoardinWorld();
   bool state_change(ar_land::flight_state_changeRequest &req,
                     ar_land::flight_state_changeResponse  &res);
   void getValue(const geometry_msgs::Twist &msg);
   bool goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res);
   void setTrajPoint(const ros::TimerEvent& e);
-  void updateBoardPos(const ros::TimerEvent& e);
+  void updateGoalPos();
   void receiveObserverData(const ar_land::PosVelAcc &msg);
 
 
@@ -87,6 +87,7 @@ private:
   bool run_traj;
   bool traj_started;
   bool traj_finished;
+  bool landing;
 
   bool calc_traj_with_real_values;
 
