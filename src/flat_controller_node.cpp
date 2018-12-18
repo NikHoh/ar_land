@@ -48,6 +48,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   //pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &flat_controller_node::goalChanged, this);
   goal_posVelAcc_sub = nh.subscribe("/ar_land/goal_posVelAcc_topic", 1, &flat_controller_node::receiveTrajectory, this);
   imuData_sub = nh.subscribe("/crazyflie/imu", 1, &flat_controller_node::receiveIMUdata, this);
+  imuRotation_quat_sub = nh.subscribe("/crazyflie/log_state_estimate_quat",1,&flat_controller_node::receiveIMURot_Quat, this);
 
 
   //dynamic reconfigure
@@ -74,6 +75,16 @@ void flat_controller_node::receiveTrajectory(const ar_land::PosVelAcc::ConstPtr&
 void flat_controller_node::receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg)
 {
   imuData_msg = *msg;
+}
+
+void flat_controller_node::receiveIMURot_Quat(const crazyflie_driver::GenericLogDataConstPtr& msg){
+  if(msg->values.size() < 4){
+    ROS_ERROR("recieved Message to small for Quaternion");
+    return;
+  }
+
+  imuRotation = tf::Quaternion(msg->values[0],msg->values[1],msg->values[2],msg->values[3]);
+
 }
 
 void flat_controller_node::pidReset()
@@ -243,10 +254,13 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
   float gravity = 9.81;
   tf::Vector3 imuData;
-  tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
+  tf::Transform rot_world_to_drone_imu(imuRotation);  // // quaternion of sensor frame relative to auxiliary frame %% copied from firmware
+  //tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
+  tf::Matrix3x3 fusedRotation = fuseRotation(rot_world_to_drone_imu,tf_world_to_drone);
   imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and subtract local gravity -> z-value in in ground position calib am Anfgang...
  // imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
-  imuData = rot_world_to_drone*imuData;
+  //imuData = rot_world_to_drone*imuData;
+  imuData = fusedRotation*imuData;
   imuData.setZ(imuData.getZ()-gravity); //
 
   // observer for velocities
