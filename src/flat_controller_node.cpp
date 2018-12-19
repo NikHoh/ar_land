@@ -64,7 +64,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
 void flat_controller_node::run(double frequency)
 {
   ros::NodeHandle node;
-  //ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &flat_controller_node::iteration, this);
+  ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &flat_controller_node::iteration, this);
   ros::Timer timer_obs = node.createTimer(ros::Duration(1.0/100), &flat_controller_node::getActualPosVel, this);
   ros::spin();
 
@@ -147,7 +147,6 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual) + K_v*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs) + g_vec;
-
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -158,13 +157,26 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     }
 
-    tf::Matrix3x3 R = tf::Matrix3x3(tf_world_to_drone.getRotation());
-
+    //tf::Matrix3x3 R = tf::Matrix3x3(tf_world_to_drone.getRotation());
     tfScalar roll, pitch, yaw;
-    R.getEulerYPR(yaw,pitch,roll);
+    tf::Matrix3x3 R = tf::Matrix3x3(
+          tf::Quaternion(
+            tf_world_to_drone.getRotation().x(),
+            tf_world_to_drone.getRotation().y(),
+            tf_world_to_drone.getRotation().z(),
+            tf_world_to_drone.getRotation().w()
+            ));
 
+    R.getRPY(roll, pitch, yaw);
+    //ROS_INFO("RPY: %f   %f   %f", roll, pitch, yaw);
 
-    float thrust = 0.04*a_ref.dot(R.getColumn(3)); // Factor in order to achieve a thrust of 44500 when drone should hover
+    //ROS_INFO("quat: %f   %f   %f   %f", tf_world_to_drone.getRotation().x(), tf_world_to_drone.getRotation().y(), tf_world_to_drone.getRotation().z(), tf_world_to_drone.getRotation().w());
+    //ROS_INFO("R: %f   %f   %f", R.getRow(0).x(), R.getRow(0).y(), R.getRow(0).z());
+    //ROS_INFO(" : %f   %f   %f", R.getRow(1).x(), R.getRow(1).y(), R.getRow(1).z());
+    //ROS_INFO(" : %f   %f   %f", R.getRow(2).x(), R.getRow(2).y(), R.getRow(2).z());
+
+    double thrust = a_ref.dot(R.getColumn(2))*113000*0.04; // Factor in order to achieve a thrust of 44500 when drone should hover
+                                                           // getColumn(2) returns third column
 
     tf::Vector3 R_ref_col_3 = a_ref.normalized();
 
