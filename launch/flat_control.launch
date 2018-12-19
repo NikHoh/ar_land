@@ -15,8 +15,9 @@
         <arg name="camera_fps" default="30"/>
   <arg name="camera_calibration" default="file://$(find ar_nav)/data/crazyflie_runcam.yaml"/>
         <arg name="image_undist" default="image_rect_color"/>
-  <arg name="uri" default="radio://0/120/2M/E7E7E7E701" />    <!--Niko's Drohne -->
-   <!--<arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> Philipps Drohne -->
+  <!--<arg name="uri" default="radio://0/120/2M/E7E7E7E701" />    Niko's Drohne -->
+   <arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> <!--Philipps Drohne -->
+   <!--<arg name="uri" default="radio://0/80/250K/E7E7E7E7E7" /> Maurice Drohen -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="use_controller" default="true"/>
   <arg name="publish_tf" default="false" />
@@ -81,17 +82,26 @@
   <group ns="crazyflie">
 
 
-    <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
-      <arg name="uri" value="$(arg uri)" />
-      <arg name="tf_prefix" value="crazyflie" />
-      <arg name="enable_logging" value="True" />
-      <rosparam>
-          genericLogTopics: ["log_state_estimate_rpy", "log_state_estimate_quat"]
-          genericLogTopicFrequencies: [30, 30]
-          genericLogTopic_log_state_estimate_rpy_Variables: ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw"]
-          genericLogTopic_log_state_estimate_quat_Variables: ["stabilizer.qx", "stabilizer.qy", "stabilizer.qz", "stabilizer.qw"]
-      </rosparam>
-    </include>
+  <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
+    <param name="uri" value="$(arg uri)" />
+    <param name="tf_prefix" value="crazyflie" />
+    <param name="roll_trim" value="0" />
+    <param name="pitch_trim" value="0" />
+    <param name="enable_logging" value="True" />
+    <param name="use_ros_time" value="True" />
+    <param name="enable_logging_imu" value="True" />
+    <param name="enable_logging_temperature" value="True" />
+    <param name="enable_logging_magnetic_field" value="True" />
+    <param name="enable_logging_pressure" value="True" />
+    <param name="enable_logging_battery" value="True" />
+    <param name="enable_logging_packets" value="True"/>
+    <rosparam>
+    genericLogTopics: ["log_state_estimate_rpy", "log_state_estimate_quat"]
+    genericLogTopicFrequencies: [30, 30]
+    genericLogTopic_log_state_estimate_rpy_Variables: ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw"]
+    genericLogTopic_log_state_estimate_quat_Variables: ["stabilizer.qx", "stabilizer.qy", "stabilizer.qz", "stabilizer.qw"]
+    </rosparam>
+  </node>
 
     <!-- Launch Joystick tools -->
     <node name="joy" pkg="joy" type="joy_node" output="screen" >
@@ -207,11 +217,11 @@
 <node pkg="tf" type="static_transform_publisher" name="drone_imu_tf_br" args="0 0 0 0 0 0 1  /crazyflie/base_link /imu 100"/>
 
 <!-- debug transformation from world to drone-->
-<node pkg="tf" type="static_transform_publisher" name="world_drone_tf_br" args="0 0 0 0 0 0 1 /world /crazyflie/base_link 100"/>
+<!--<node pkg="tf" type="static_transform_publisher" name="world_drone_tf_br" args="0 0 0 0 0 0 1 /world /crazyflie/base_link 100"/>-->
 
 
 <!-- debug transformation from world to board-->
-<node pkg="tf" type="static_transform_publisher" name="world_board_tf_br" args="-0.2 0 0 0 0 0 1 /world /board_c3po 100"/>
+<!--<node pkg="tf" type="static_transform_publisher" name="world_board_tf_br" args="-0.2 0 0 0 0 0 1 /world /board_c3po 100"/>-->
 
 
 </launch>

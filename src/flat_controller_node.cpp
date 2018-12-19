@@ -29,6 +29,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   , controller_started(false)
   , resetPID(false)
   , observer_init(false)
+  , recievedImuRot(false)
 
   // Body of class definition
 {
@@ -48,7 +49,8 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   //pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &flat_controller_node::goalChanged, this);
   goal_posVelAcc_sub = nh.subscribe("/ar_land/goal_posVelAcc_topic", 1, &flat_controller_node::receiveTrajectory, this);
   imuData_sub = nh.subscribe("/crazyflie/imu", 1, &flat_controller_node::receiveIMUdata, this);
-  imuRotation_quat_sub = nh.subscribe("/crazyflie/log_state_estimate_quat",1,&flat_controller_node::receiveIMURot_Quat, this);
+  imuRotation_quat_sub = nh.subscribe("/crazyflie/log_state_estimate_quat",1,&flat_controller_node::receiveIMURot_Quat, this); // alternative using the Quaternions directly from drone
+  //imuRotation_rpy_sub = nh.subscribe("/crazyflie/log_state_estimate_rpy",1,&flat_controller_node::receiveIMURot_rpy, this);
 
 
   //dynamic reconfigure
@@ -56,6 +58,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig>::CallbackType f;
   f = boost::bind(&flat_controller_node::dynamic_reconfigure_callback, this, _1, _2);
   m_server.setCallback(f);
+  initializeRotation(); // nochmal überlegen wo und wann und wie das passieren muss...
 }
 
 void flat_controller_node::run(double frequency)
@@ -84,7 +87,25 @@ void flat_controller_node::receiveIMURot_Quat(const crazyflie_driver::GenericLog
   }
 
   imuRotation = tf::Quaternion(msg->values[0],msg->values[1],msg->values[2],msg->values[3]);
+  recievedImuRot =true;
+}
 
+
+// not working yet
+void flat_controller_node::receiveIMURot_rpy(const crazyflie_driver::GenericLogDataConstPtr& msg){
+  if(msg->values.size() < 3){
+    ROS_ERROR("recieved Message to small for rpy");
+    return;
+  }
+
+  imuRotation = tf::Quaternion(msg->values[2],msg->values[1],msg->values[0]);
+  tf::Matrix3x3 test ;
+  test.setEulerZYX(msg->values[2],msg->values[1],msg->values[0]);
+  tf::Quaternion test2;
+  test.getRotation(test2);
+  ROS_INFO("initial quaternion = [ %f, %f, %f, %f",imuRotation.getW(),imuRotation.getX(),imuRotation.getY(),imuRotation.getZ());
+  ROS_INFO("tset quaternion = [ %f, %f, %f, %f",test2.getW(),test2.getX(),test2.getY(),test2.getZ());
+  recievedImuRot =true;
 }
 
 void flat_controller_node::pidReset()
@@ -254,14 +275,15 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
   float gravity = 9.81;
   tf::Vector3 imuData;
-  tf::Transform rot_world_to_drone_imu(imuRotation);  // // quaternion of sensor frame relative to auxiliary frame %% copied from firmware
+  tf::Transform rot_world_to_drone_imu(imuRotation);// // quaternion of sensor frame relative to auxiliary frame %% copied from firmware
+  rot_world_to_drone_imu = rot_world_to_ImuInitial*rot_world_to_drone_imu;
   //tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
   tf::Matrix3x3 fusedRotation = fuseRotation(rot_world_to_drone_imu,tf_world_to_drone);
   imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and subtract local gravity -> z-value in in ground position calib am Anfgang...
  // imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
   //imuData = rot_world_to_drone*imuData;
   imuData = fusedRotation*imuData;
-  imuData.setZ(imuData.getZ()-gravity); //
+  imuData.setZ(imuData.getZ()); //-gravity
 
   // observer for velocities
   float l1 = 1.4;
@@ -308,6 +330,38 @@ void flat_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKP(config.Kp_yaw);
   pid_yaw.setKI(config.Ki_yaw);
   pid_yaw.setKD(config.Kd_yaw);
+
+}
+
+void flat_controller_node::initializeRotation(){
+  // wait for trafos from Imu to marker coordinate frame, marker to tracking room frame, Imu to imu_inertial frame rotation
+  // q_start = q_ots*q_m*inv(q)
+  while(!recievedImuRot){
+    ros::spinOnce();
+  }
+  tf::StampedTransform tf_world_to_drone;
+  tf::StampedTransform tf_drone_to_imu;
+  try{
+    tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+    tf_lis.lookupTransform(drone_frame_id, imu_frame_id, ros::Time(0), tf_drone_to_imu);
+  }
+  catch(tf::TransformException &ex)
+  {
+    ROS_INFO("No Transformation from World to Drone found");
+
+  }
+
+
+  tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
+  tf::Transform rot_drone_to_imu(tf_drone_to_imu);
+  ROS_INFO("initial quaternion = [ %f, %f, %f, %f",imuRotation.getW(),imuRotation.getX(),imuRotation.getY(),imuRotation.getZ());
+  tf::Transform rot_imu_to_ImuInitial(imuRotation.inverse());
+
+  //rot_ImuInitial_to_world = rot_ImutInitial_to_Imu*rot_Imu_to_marker*rot_marker_to_world;
+
+  rot_world_to_ImuInitial = rot_world_to_drone*rot_drone_to_imu*rot_imu_to_ImuInitial;
+
+
 
 }
 

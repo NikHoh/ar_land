@@ -40,10 +40,12 @@ private:
   void receiveTrajectory(const ar_land::PosVelAcc::ConstPtr& msg);
   void receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg);
   void receiveIMURot_Quat(const crazyflie_driver::GenericLogDataConstPtr& msg);
+  void receiveIMURot_rpy(const crazyflie_driver::GenericLogDataConstPtr& msg);
   //void receiveIMURot_rpy(const crazyflie_driver::GenericLogDataConstPtr& msg); // one or the other
   void pidReset();
   void pidStart();
   void getActualPosVel(const ros::TimerEvent& e);
+  void initializeRotation();
 
 
 
@@ -82,6 +84,8 @@ private:
   sensor_msgs::Imu imuData_msg;
 
   tf::Quaternion imuRotation;
+  bool recievedImuRot;
+  tf::Transform rot_world_to_ImuInitial;
 
 
 
