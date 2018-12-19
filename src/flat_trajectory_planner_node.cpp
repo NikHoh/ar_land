@@ -90,6 +90,9 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     run_traj = false;
     traj_started = false;
     traj_finished = false;
+    nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
+    nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
+    nh.setParam("/ar_land/flat_controller_node/z_final_in_world", z_f);
     tf::Vector3 goal_position_in_world = tf::Vector3(x_f, y_f, z_f);
     tf::Vector3 twist_goal_in_world = tf::Vector3(0, 0, 0);
     tf::Vector3 accel_goal_in_world = tf::Vector3(0, 0, 0);
@@ -187,7 +190,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.2; // [m/s]
+    float vel = 0.8; // [m/s]
     if(!traj_started)
     {
       // initializes start of completely new commanded trajectory with zero velocities and accelerations and actual position of drone

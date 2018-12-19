@@ -36,8 +36,13 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   ros::NodeHandle nh;
 
   //initialization
-  K_x.setValue(18.5,0,0,0,-19.5,0,0,0,6000);
-  K_v.setValue(9.5,0,0,0,-9.5,0,0,0,7000);
+  //K_x.setValue(18.5,0,0,0,-19.5,0,0,0,6000);
+
+  //K_x.setValue(18.5,0,0,0,-19.5,0,0,0,6000);
+  K_x.setValue(3,0,0,0,3,0,0,0,20);
+  //K_v.setValue(9.5,0,0,0,-9.5,0,0,0,7000);
+  K_v.setValue(5,0,0,0,5,0,0,0,5);
+
 
   // Publishers
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -139,12 +144,12 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     //ROS_INFO("RPY: %f   %f   %f", roll, pitch, yaw);
 
     //ROS_INFO("quat: %f   %f   %f   %f", tf_world_to_drone.getRotation().x(), tf_world_to_drone.getRotation().y(), tf_world_to_drone.getRotation().z(), tf_world_to_drone.getRotation().w());
-    //ROS_INFO("R: %f   %f   %f", R.getRow(0).x(), R.getRow(0).y(), R.getRow(0).z());
-    //ROS_INFO(" : %f   %f   %f", R.getRow(1).x(), R.getRow(1).y(), R.getRow(1).z());
-    //ROS_INFO(" : %f   %f   %f", R.getRow(2).x(), R.getRow(2).y(), R.getRow(2).z());
 
-    double thrust = a_ref.dot(R.getColumn(2))*113000*0.04; // Factor in order to achieve a thrust of 44500 when drone should hover
+    double thrust = a_ref.dot(R.getColumn(2))*119088*0.043; // Factor (113000, 134000) in order to achieve a thrust of 44500 when drone should hover
                                                            // getColumn(2) returns third column
+
+    // control limit for thrust
+    thrust = std::max(0.0, std::min(60000.0, thrust));
 
     tf::Vector3 R_ref_col_3 = a_ref.normalized();
 
@@ -161,9 +166,29 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     tf::Vector3 R_ref_col_1 = R_ref_col_2.cross(R_ref_col_3);
 
+    /*
     tf::Matrix3x3 R_ref =  tf::Matrix3x3(R_ref_col_1.x(), R_ref_col_2.x(), R_ref_col_3.x(),
                                          R_ref_col_1.y(), R_ref_col_2.y(), R_ref_col_3.y(),
                                          R_ref_col_1.z(), R_ref_col_2.z(), R_ref_col_3.z());
+                                         */
+
+    tf::Vector3 z_axis = tf::Vector3(0,0,1);
+    tfScalar tilt_angle = z_axis.angle(a_ref);
+    tfScalar tilt_angle_neg = a_ref.angle(z_axis);
+    //ROS_INFO("tilt_angles: %f, %f", tilt_angle, tilt_angle_neg);
+
+tf::Quaternion q = tf::Quaternion(R_ref_col_2, tilt_angle);
+
+    tf::Matrix3x3 R_ref = tf::Matrix3x3(q);
+
+
+
+//ROS_INFO("Quat: %f %f %f %f", q.getX(), q.getY(), q.getZ(), q.getW());
+
+
+    //ROS_INFO("R_ref: %f   %f   %f", R_ref.getRow(0).x(), R_ref.getRow(0).y(), R_ref.getRow(0).z());
+    //ROS_INFO("     : %f   %f   %f", R_ref.getRow(1).x(), R_ref.getRow(1).y(), R_ref.getRow(1).z());
+    //ROS_INFO("     : %f   %f   %f", R_ref.getRow(2).x(), R_ref.getRow(2).y(), R_ref.getRow(2).z());
 
 
     tfScalar roll_ref, pitch_ref, yaw_ref;
@@ -288,20 +313,11 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 void flat_controller_node::dynamic_reconfigure_callback(
       ar_land::dynamic_param_configConfig& config, uint32_t level) {
 
-  ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
+  ROS_INFO("Reconfigure Request: %f %f %f,%f %f %f", config.Kp_x, config.Kd_x, config.Kp_y, config.Kd_y, config.Kp_z, config.Kd_z);
 
-  // Coefficients for the PID controller
-  //pid_x.setKP(config.Kp_x);
-  //pid_x.setKI(config.Ki_x);
-  //pid_x.setKD(config.Kd_x);
 
-  //pid_y.setKP(config.Kp_y);
-  //pid_y.setKI(config.Ki_y);
-  //pid_y.setKD(config.Kd_y);
-
-  //pid_z.setKP(config.Kp_z);
-  //pid_z.setKI(config.Ki_z);
-  //pid_z.setKD(config.Kd_z);
+  K_x.setValue(config.Kp_x,0,0,0,config.Kp_y,0,0,0,config.Kp_z);
+  K_v.setValue(config.Kd_x,0,0,0,config.Kd_y,0,0,0,config.Kd_z);
 
   pid_yaw.setKP(config.Kp_yaw);
   pid_yaw.setKI(config.Ki_yaw);
