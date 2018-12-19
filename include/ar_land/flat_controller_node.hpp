@@ -17,7 +17,7 @@
 #include <ar_land/PosVelAcc.h>
 #include <sensor_msgs/Imu.h>
 #include <ar_land/PosVelAcc.h>
-
+#include <crazyflie_driver/GenericLogData.h>
 
 class flat_controller_node
 {
@@ -39,9 +39,13 @@ private:
   double get(const ros::NodeHandle& n, const std::string& name);
   void receiveTrajectory(const ar_land::PosVelAcc::ConstPtr& msg);
   void receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg);
+  void receiveIMURot_Quat(const crazyflie_driver::GenericLogDataConstPtr& msg);
+  void receiveIMURot_rpy(const crazyflie_driver::GenericLogDataConstPtr& msg);
+  //void receiveIMURot_rpy(const crazyflie_driver::GenericLogDataConstPtr& msg); // one or the other
   void pidReset();
   void pidStart();
   void getActualPosVel(const ros::TimerEvent& e);
+  void initializeRotation();
 
 
 
@@ -49,6 +53,8 @@ private:
   //ros::Subscriber pose_goal_in_world_sub;
   ros::Subscriber goal_posVelAcc_sub;
   ros::Subscriber imuData_sub;
+  ros::Subscriber imuRotation_quat_sub;
+  ros::Subscriber imuRotation_rpy_sub;
 
 
   // Publisher
@@ -77,6 +83,12 @@ private:
   ar_land::PosVelAcc posVelAcc_goal_in_world_msg;
   sensor_msgs::Imu imuData_msg;
 
+  tf::Quaternion imuRotation;
+  bool recievedImuRot;
+  tf::Transform rot_world_to_ImuInitial;
+
+
+
   dynamic_reconfigure::Server<ar_land::dynamic_param_configConfig> m_server;
 
   tf::Vector3 a_ref;
@@ -99,5 +111,7 @@ private:
 
 
 };
+
+tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking_room);
 
 #endif // FLAT_CONTROLLER_NODE_H
