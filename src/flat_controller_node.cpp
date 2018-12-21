@@ -97,6 +97,7 @@ void flat_controller_node::receiveIMURot_Quat(const crazyflie_driver::GenericLog
 
 
 // not working yet
+/*
 void flat_controller_node::receiveIMURot_rpy(const crazyflie_driver::GenericLogDataConstPtr& msg){
   if(msg->values.size() < 3){
     ROS_ERROR("recieved Message to small for rpy");
@@ -111,7 +112,7 @@ void flat_controller_node::receiveIMURot_rpy(const crazyflie_driver::GenericLogD
   ROS_INFO("initial quaternion = [ %f, %f, %f, %f",imuRotation.getW(),imuRotation.getX(),imuRotation.getY(),imuRotation.getZ());
   ROS_INFO("tset quaternion = [ %f, %f, %f, %f",test2.getW(),test2.getX(),test2.getY(),test2.getZ());
   recievedImuRot =true;
-}
+}*/
 
 void flat_controller_node::pidReset()
 {
@@ -181,7 +182,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
                                                            // getColumn(2) returns third column
 
     // control limit for thrust
-    thrust = std::max(0.0, std::min(60000.0, thrust));
+    thrust = std::max(27000.0, std::min(60000.0, thrust));
 
     tf::Vector3 R_ref_col_3 = a_ref.normalized();
 
@@ -230,9 +231,9 @@ tf::Quaternion q = tf::Quaternion(R_ref_col_2, tilt_angle);
 
 
     geometry_msgs::Twist control_out;
-    control_out.linear.x = pitch_ref;
-    control_out.linear.y = roll_ref;
-    control_out.linear.z = thrust;
+    control_out.linear.x = std::max(-10.0, std::min(10.0, pitch_ref/M_PI*180.0));
+    control_out.linear.y = std::max(-10.0, std::min(10.0, roll_ref/M_PI*180.0));
+    control_out.linear.z = thrust*0.0;
     control_out.angular.z = pid_yaw.update(yaw, yaw_ref);
 
     control_out_pub.publish(control_out);
@@ -314,18 +315,20 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   tf::Vector3 imuData;
   tf::Transform rot_world_to_drone_imu(imuRotation);// // quaternion of sensor frame relative to auxiliary frame %% copied from firmware
   rot_world_to_drone_imu = rot_world_to_ImuInitial*rot_world_to_drone_imu;
-  //tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
+  tf::Transform rot_world_to_drone(tf_world_to_drone.getRotation());
   tf::Matrix3x3 fusedRotation = fuseRotation(rot_world_to_drone_imu,tf_world_to_drone);
   imuData = tools_func::convertToTFVector3(imuData_msg.linear_acceleration); // transform in world-coordinates and subtract local gravity -> z-value in in ground position calib am Anfgang...
  // imuData = tf_world_to_drone*tf_drone_to_imu*imuData-tf_world_to_drone.getOrigin();  // aufpassen, die Transformation von der Kamera passt in der Regel nicht, da zeitlich zu verschieden, deshalb wahrscheinlich besser alles im Drone frame zu berechnen, da position immer mit pose upgedatet wird und eh übereinstimmt
-  //imuData = rot_world_to_drone*imuData;
-  imuData = fusedRotation*imuData;
-  imuData.setZ(imuData.getZ()); //-gravity
+  imuData = rot_world_to_drone*imuData;
+  //imuData = fusedRotation*imuData;
+  imuData.setZ(imuData.getZ()-gravity);
 
   // observer for velocities
-  float l1 = 1.4;
-  float l2 = 14.7;
+  //float l1 = 1.4;
+  //float l2 = 14.7;
 
+  float l1 = 0.588;
+  float l2 = 3.03;
   x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
   v_obs = v_obs_prev + dt*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
 
@@ -398,8 +401,8 @@ tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking
   tf::Matrix3x3 imuRot(tf_by_imu.getRotation());
   tf::Matrix3x3 trackRot(tf_by_tracking_room.getRotation());
 
-  ROS_INFO("imu :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",imuRot[0].getX(),imuRot[0].getY(),imuRot[0].getZ(),imuRot[1].getX(),imuRot[1].getY(),imuRot[1].getZ(),imuRot[2].getX(),imuRot[2].getY(),imuRot[2].getZ());
-  ROS_INFO("track :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",trackRot[0].getX(),trackRot[0].getY(),trackRot[0].getZ(),trackRot[1].getX(),trackRot[1].getY(),trackRot[1].getZ(),trackRot[2].getX(),trackRot[2].getY(),trackRot[2].getZ());
+  //ROS_INFO("imu :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",imuRot[0].getX(),imuRot[0].getY(),imuRot[0].getZ(),imuRot[1].getX(),imuRot[1].getY(),imuRot[1].getZ(),imuRot[2].getX(),imuRot[2].getY(),imuRot[2].getZ());
+  //ROS_INFO("track :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",trackRot[0].getX(),trackRot[0].getY(),trackRot[0].getZ(),trackRot[1].getX(),trackRot[1].getY(),trackRot[1].getZ(),trackRot[2].getX(),trackRot[2].getY(),trackRot[2].getZ());
 
   tf::Vector3 bz_star = imuRot.getColumn(2);
   tf::Vector3 bx = trackRot.getColumn(0);
@@ -409,7 +412,7 @@ tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking
   bx_star.normalize();
 
   tf::Matrix3x3 fusedRotation = tf::Matrix3x3(bx_star.getX(),by_star.getX(),bz_star.getX(),bx_star.getY(),by_star.getY(),bz_star.getY(),bx_star.getZ(),by_star.getZ(),bz_star.getZ());
-  ROS_INFO("fused :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",fusedRotation[0].getX(),fusedRotation[0].getY(),fusedRotation[0].getZ(),fusedRotation[1].getX(),fusedRotation[1].getY(),fusedRotation[1].getZ(),fusedRotation[2].getX(),fusedRotation[2].getY(),fusedRotation[2].getZ());
+  //ROS_INFO("fused :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",fusedRotation[0].getX(),fusedRotation[0].getY(),fusedRotation[0].getZ(),fusedRotation[1].getX(),fusedRotation[1].getY(),fusedRotation[1].getZ(),fusedRotation[2].getX(),fusedRotation[2].getY(),fusedRotation[2].getZ());
   return fusedRotation;
 }
 

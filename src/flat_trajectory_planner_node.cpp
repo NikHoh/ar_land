@@ -190,7 +190,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.8; // [m/s]
+    float vel = 0.2; // [m/s]
     if(!traj_started)
     {
       // initializes start of completely new commanded trajectory with zero velocities and accelerations and actual position of drone
