@@ -44,10 +44,20 @@ void MarkerObserver::getCamBoardTf(const geometry_msgs::TransformStamped &T_cam_
   world_to_board_tf.frame_id_ = world_frame_id;
   world_to_board_tf.stamp_ = cam_to_board_tf.stamp_;
 
-  if(cam_to_board_tf.getOrigin().length() > 0.5){ //assume some distance for accurate measurement
-    world_to_board_tf.setOrigin(0.5*(world_to_board_tf.getOrigin()+previous_world_to_board_tf.getOrigin())); // take the average of the 2 vectors, for now.... change to some confidence level depending on measurement
-    world_to_board_tf.setRotation(world_to_board_tf.getRotation().slerp(previous_world_to_board_tf.getRotation(),0.5));  // computes the spherical linear interpolation, which is some rotation between the given two, change scalar to same confidence as above
+
+  float acc_distance = 0.5;
+  float measure_confidence = 0.5;
+
+  if(!observed_board){
+    observed_board = true;
+  }else{  //if board was observed at least once a previous transformation must exist
+
+    if(cam_to_board_tf.getOrigin().length() > acc_distance){ //assume some distance for accurate measurement
+      world_to_board_tf.setOrigin((measure_confidence*world_to_board_tf.getOrigin())+((1-measure_confidence)*previous_world_to_board_tf.getOrigin())); // take the average of the 2 vectors, for now.... change to some confidence level depending on measurement
+      world_to_board_tf.setRotation(world_to_board_tf.getRotation().slerp(previous_world_to_board_tf.getRotation(),measure_confidence));  // computes the spherical linear interpolation, which is some rotation between the given two, change scalar to same confidence as above
+    }
   }
+  previous_world_to_board_tf = world_to_board_tf;
 
 }
 

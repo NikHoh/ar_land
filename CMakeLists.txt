@@ -18,7 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   message_generation
   dynamic_reconfigure
+  cv_bridge
+  image_transport
 )
+
+find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -113,7 +117,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES ar_land
-  CATKIN_DEPENDS roscpp rospy std_msgs tf message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs tf message_runtime cv_bridge image_transport
 #  DEPENDS system_lib
 )
 
@@ -174,6 +178,8 @@ add_dependencies(flat_trajectory_planner_node ar_land_generate_messages_cpp) ## 
 
 
 
+add_executable(fisheye_rectification_node src/fisheye_rectification_node.cpp include/ar_land/fisheye_rectification_node.hpp)
+target_link_libraries(fisheye_rectification_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
