@@ -233,7 +233,7 @@ tf::Quaternion q = tf::Quaternion(R_ref_col_2, tilt_angle);
     geometry_msgs::Twist control_out;
     control_out.linear.x = std::max(-10.0, std::min(10.0, pitch_ref/M_PI*180.0));
     control_out.linear.y = std::max(-10.0, std::min(10.0, roll_ref/M_PI*180.0));
-    control_out.linear.z = thrust*0.0;
+    control_out.linear.z = thrust;
     control_out.angular.z = pid_yaw.update(yaw, yaw_ref);
 
     control_out_pub.publish(control_out);
@@ -306,6 +306,7 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   if(!observer_init){                           // bessere Initialisierung überlegen. Also sufficient if one lands several times ? maybe needs to be reset better
     x_obs_prev = x_actual;
     x_actual_prev = x_actual;
+    v_obs_prev = tf::Vector3(0.0,0.0,0.0);
     prev_time = ros::Time::now();
     observer_init = true;
   }
@@ -329,8 +330,8 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
   float l1 = 0.588;
   float l2 = 3.03;
-  x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
-  v_obs = v_obs_prev + dt*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+  x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*0.0*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
+  v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
 
   x_actual_prev = x_actual;
   v_obs_prev = v_obs;
