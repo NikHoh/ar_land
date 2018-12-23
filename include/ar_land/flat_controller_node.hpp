@@ -70,6 +70,7 @@ private:
   bool observer_init;
 
   float z_integral;
+  float thrust_fact;
 
   std::string world_frame_id;
   std::string drone_frame_id;

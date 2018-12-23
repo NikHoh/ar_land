@@ -155,22 +155,18 @@
 <node name="state_admin_node" pkg="ar_land" type="state_admin_node" output="screen">
 </node>
 
-    <!-- Flat Controller node -->
-    <node name="flat_controller_node" pkg="ar_land" type="flat_controller_node" output="screen">
-      <param name="frame" value="$(arg controller_frame)" />
-      <param name="worldFrame" value="$(arg controller_worldFrame)" />
-      <param name ="controller_enabled" type="bool" value="false"/>
-      <param name = "z_integral" type = "double" value="0" />
-      <param name = "resetPID" type = "bool" value="false" />
-      <param name = "x_final_in_world" type = "double" value="0" />
-      <param name = "y_final_in_world" type = "double" value="0" />
-      <param name = "z_final_in_world" type = "double" value="0" />
-      <param name="obs_posVelAcc_topic" value="/ar_land/obs_posVelAcc_topic" />
-      <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />
-      <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
-      <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
-      <remap from="goal" to="$(arg goal_topic_name)" />
-    </node>
+<!-- PID Controller node -->
+<node name="pid_controller_node" pkg="ar_land" type="pid_controller_node" output="screen">
+  <param name="frame" value="$(arg controller_frame)" />
+  <param name="worldFrame" value="$(arg controller_worldFrame)" />
+  <param name ="controller_enabled" type="bool" value="false"/>
+  <param name = "z_integral" type = "double" value="0" />
+  <param name = "resetPID" type = "bool" value="false" />
+  <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />
+  <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
+  <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
+  <remap from="goal" to="$(arg goal_topic_name)" />
+</node>
 
 
 <!-- flat trajectory planner node-->

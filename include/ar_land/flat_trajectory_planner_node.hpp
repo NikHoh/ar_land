@@ -61,6 +61,7 @@ private:
   ros::Publisher pose_goal_in_world_pub;
   ros::Publisher goal_posVelAcc_pub;
 
+
   // Services
   ros::ServiceServer flight_state_change_srv;
   ros::ServiceServer goal_change_srv_serv;
@@ -85,6 +86,7 @@ private:
 
   double frequency;
   float dt;
+  float t_prev;
   bool run_traj;
   bool traj_started;
   bool traj_finished;
@@ -93,6 +95,7 @@ private:
 
   tf::Vector3 start_position_in_board;
   ros::Time start_time;
+  ros::Time rost_prev;
 
   ros::Timer timer;
 

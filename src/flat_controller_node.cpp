@@ -178,7 +178,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     //ROS_INFO("quat: %f   %f   %f   %f", tf_world_to_drone.getRotation().x(), tf_world_to_drone.getRotation().y(), tf_world_to_drone.getRotation().z(), tf_world_to_drone.getRotation().w());
 
-    double thrust = a_ref.dot(R.getColumn(2))*119088*0.043; // Factor (113000, 134000) in order to achieve a thrust of 44500 when drone should hover
+    double thrust = a_ref.dot(R.getColumn(2))*thrust_fact*0.043; // Factor (113000, 134000) in order to achieve a thrust of 44500 when drone should hover
                                                            // getColumn(2) returns third column
 
     // control limit for thrust
@@ -362,6 +362,7 @@ void flat_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKP(config.Kp_yaw);
   pid_yaw.setKI(config.Ki_yaw);
   pid_yaw.setKD(config.Kd_yaw);
+  thrust_fact = config.thrust_fact;
 
 }
 
@@ -435,7 +436,7 @@ int main(int argc, char **argv)
 
   n.param<std::string>("imu_frame_id", imu_frame_id, "/imu");
 
-  n.param<double>("frequency", frequency, 30.0);
+  n.param<double>("frequency", frequency, 100.0);
 
   flat_controller_node controller(world_frame_id, drone_frame_id, imu_frame_id, n);
   controller.run(frequency);

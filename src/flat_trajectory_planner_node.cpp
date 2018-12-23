@@ -17,6 +17,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   n.param<std::string>("goal_frame_id", goal_frame_id, "/crazyflie/goal");
   n.param<std::string>("board_frame_id", board_frame_id, "board_c3po");
   n.param<std::string>("cam_frame_id", cam_frame_id, "/cam");
+  n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/pose_goal_in_world_topic");
 
   // Subscribers
   //T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &flat_trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
@@ -25,13 +26,14 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   // Publishers
   goal_posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>(goal_posVelAcc_topic, 1);
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+  pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // states that pose_goal_in_world_pub publishes to topic (1)
 
   //Services
   flight_state_change_srv = nh.advertiseService("flight_state_change", &flat_trajectory_planner_node::state_change, this);
   goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &flat_trajectory_planner_node::goal_change, this);
 
   goal_position_in_board.setValue(0,0,0.7);
-  frequency = 30;
+  frequency = 100;
   run_traj = false;
   traj_started = false;
   traj_finished = false;
@@ -104,6 +106,24 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     tf::vector3TFToMsg(accel_goal_in_world,posVelAcc_in_world.acc);
 
     goal_posVelAcc_pub.publish(posVelAcc_in_world);
+/*
+    // test for using PID Controllers
+nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
+    geometry_msgs::TransformStamped T_world_goal_msg;
+    geometry_msgs::PoseStamped pose_goal_in_world_msg;
+    tf::StampedTransform world_to_goal_tf;
+    world_to_goal_tf.setOrigin(goal_position_in_world);
+    world_to_goal_tf.child_frame_id_ = goal_frame_id;
+    world_to_goal_tf.frame_id_ = world_frame_id;
+    world_to_goal_tf.stamp_ = ros::Time::now();
+    tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
+    tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
+
+    pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
+
+
+    // -----------------------------------------------
+    */
   }
     break;
   case TakingOff:
@@ -190,9 +210,11 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.1; // [m/s]
+    float vel = 0.8; // [m/s]
     if(!traj_started)
     {
+      t_prev = 0;
+      rost_prev = ros::Time::now();
       // initializes start of completely new commanded trajectory with zero velocities and accelerations and actual position of drone
       start_time = ros::Time::now();
       traj_started = true;
@@ -220,7 +242,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
     if(!traj_finished)
     {
-      double t = 1.0/30;
+      double t = 1.0/frequency + t_prev;
 
       T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
 
@@ -302,7 +324,24 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       tf_br.sendTransform(traj_debug);
 
       // ----------------------------------------------------------------------------
+/*
+      // test for using PID Controllers
 
+      geometry_msgs::TransformStamped T_world_goal_msg;
+      geometry_msgs::PoseStamped pose_goal_in_world_msg;
+      tf::StampedTransform world_to_goal_tf;
+      world_to_goal_tf.setOrigin(goal_position_in_world);
+      world_to_goal_tf.child_frame_id_ = goal_frame_id;
+      world_to_goal_tf.frame_id_ = world_frame_id;
+      world_to_goal_tf.stamp_ = ros::Time::now();
+      tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
+      tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
+
+      pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
+
+
+      // -----------------------------------------------
+*/
 
       if(calc_traj_with_real_values) // sets position, velocity and acceleration for new trajectory calculation step with the real measured and observed values
       {
@@ -330,6 +369,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       }
       else // sets position, velocity and acceleration for new trajectory calculation step with the previous calculated values
       {
+        /*
         x_0 = x_out;
         y_0 = y_out;
         z_0 = z_out;
@@ -339,6 +379,8 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
         xpp_0 = xpp_out;
         ypp_0 = ypp_out;
         zpp_0 = zpp_out;
+        */
+        t_prev = t;
       }
 
 
@@ -496,7 +538,7 @@ int main(int argc, char** argv) {
 
   ros::NodeHandle n("~");
   flat_trajectory_planner_node node;                // Creates flat_trajectory_planner_node
-  double frequency = 30; // TODO frequency okay?
+  double frequency = 100; // TODO frequency okay?
   node.run(frequency);
   return 0;
 }
