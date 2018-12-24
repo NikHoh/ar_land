@@ -213,8 +213,8 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
     float vel = 0.8; // [m/s]
     if(!traj_started)
     {
-      t_prev = 0;
-      rost_prev = ros::Time::now();
+      //t_prev = 0;
+      //rost_prev = ros::Time::now();
       // initializes start of completely new commanded trajectory with zero velocities and accelerations and actual position of drone
       start_time = ros::Time::now();
       traj_started = true;
@@ -224,6 +224,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       ypp_0 = 0.0;
       zp_0 = 0.0;
       zpp_0 = 0.0;
+
 
       // actual position of drone
 
@@ -238,13 +239,15 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       x_0 = tf_world_to_drone.getOrigin().x();
       y_0 = tf_world_to_drone.getOrigin().y();
       z_0 = tf_world_to_drone.getOrigin().z();
+
+      T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
     }
 
     if(!traj_finished)
     {
-      double t = 1.0/frequency + t_prev;
+      //double t = 1.0/frequency + t_prev;
+double t = 1.0/frequency;
 
-      T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
 
       if(t>T)
       {
@@ -267,7 +270,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       double gamx =  (1.0/pow(T,5))*T_matrix_3.dot(delta_pvax);
 
       double x_out = alpx*pow(t,5)/120+betx*pow(t,4)/24+gamx*pow(t,3)/6+xpp_0*pow(t,2)/2+xp_0*t+x_0;
-      double xp_out =  alpx*pow(t,4)/24+betx*pow(t,3)/6+gamx*pow(t,2)/2+xpp_0*t/2+xp_0;
+      double xp_out =  alpx*pow(t,4)/24+betx*pow(t,3)/6+gamx*pow(t,2)/2+xpp_0*t+xp_0;
       double xpp_out = alpx*pow(t,3)/6+betx*pow(t,2)/2+gamx*t+xpp_0;
 
       // y trajectory
@@ -282,7 +285,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       double gamy =  (1.0/pow(T,5))*T_matrix_3.dot(delta_pvay);
 
       double y_out = alpy*pow(t,5)/120+bety*pow(t,4)/24+gamy*pow(t,3)/6+ypp_0*pow(t,2)/2+yp_0*t+y_0;
-      double yp_out = alpy*pow(t,4)/24+bety*pow(t,3)/6+gamy*pow(t,2)/2+ypp_0*t/2+yp_0;
+      double yp_out = alpy*pow(t,4)/24+bety*pow(t,3)/6+gamy*pow(t,2)/2+ypp_0*t+yp_0;
       double ypp_out = alpy*pow(t,3)/6+bety*pow(t,2)/2+gamy*t+ypp_0;
 
       // z trajectory
@@ -297,7 +300,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       double gamz =  (1.0/pow(T,5))*T_matrix_3.dot(delta_pvaz);
 
       double z_out = alpz*pow(t,5)/120+betz*pow(t,4)/24+gamz*pow(t,3)/6+zpp_0*pow(t,2)/2+zp_0*t+z_0;
-      double zp_out = alpz*pow(t,4)/24+betz*pow(t,3)/6+gamz*pow(t,2)/2+zpp_0*t/2+zp_0;
+      double zp_out = alpz*pow(t,4)/24+betz*pow(t,3)/6+gamz*pow(t,2)/2+zpp_0*t+zp_0;
       double zpp_out = alpz*pow(t,3)/6+betz*pow(t,2)/2+gamz*t+zpp_0;
 
       tf::Vector3 goal_position_in_world = tf::Vector3(x_out, y_out, z_out);
@@ -369,7 +372,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       }
       else // sets position, velocity and acceleration for new trajectory calculation step with the previous calculated values
       {
-        /*
+
         x_0 = x_out;
         y_0 = y_out;
         z_0 = z_out;
@@ -379,14 +382,15 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
         xpp_0 = xpp_out;
         ypp_0 = ypp_out;
         zpp_0 = zpp_out;
-        */
-        t_prev = t;
+        ROS_INFO("Traj point: %0.2f, %0.2f, %0.2f", z_out, zp_out, zpp_out);
+
+        //t_prev = t;
       }
 
 
       if(flight_state == Landing)// && (x_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
       {
-        ROS_INFO("%f",std::abs(last_accel_z-accel_z));
+        //ROS_INFO("%f",std::abs(last_accel_z-accel_z));
         // "hear" for the bump
         if(std::abs(last_accel_z-accel_z)>2)
         {
@@ -399,6 +403,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       {
         traj_finished = true;
       }
+      T = T - t;
     } // !traj_finished
 
     if(traj_finished) // published desired position vel and acc as long as another traj is demanded to let the drone hover (maybe not really neccessary cause once the final data are published once everything is okay
