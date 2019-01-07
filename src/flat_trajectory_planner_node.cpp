@@ -210,7 +210,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.8; // [m/s]
+    float vel = 0.2; // [m/s]
     if(!traj_started)
     {
       //t_prev = 0;

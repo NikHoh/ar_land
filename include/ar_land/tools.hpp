@@ -62,6 +62,23 @@ void convert(const geometry_msgs::PoseStamped& pose, geometry_msgs::TransformSta
   convert(pose.pose, trans.transform);
   trans.header = pose.header;
 }
+
+int sign(double a)
+{
+  if(a > 0)
+  {
+    return 1;
+  }
+  else if(a == 0)
+  {
+      return 0;
+  }
+  else
+  {
+  return -1;
+  }
+}
+
 } // namespace tools_func
 
 #endif // TOOLS_H

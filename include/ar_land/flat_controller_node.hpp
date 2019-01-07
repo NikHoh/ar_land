@@ -18,13 +18,14 @@
 #include <sensor_msgs/Imu.h>
 #include <ar_land/PosVelAcc.h>
 #include <crazyflie_driver/GenericLogData.h>
+#include <math.h>
 
 class flat_controller_node
 {
 public:
 
   ros::NodeHandle nh;
-  flat_controller_node(const std::string& world_frame_id, const std::string& drone_frame_id, const std::string& imu_frame_id, const ros::NodeHandle& n);
+  flat_controller_node(const std::string& world_frame_id, const std::string& drone_frame_id, const std::string& imu_frame_id, const std::string& goal_frame_id, const ros::NodeHandle& n);
 
   //Functions
   void run(double frequency);
@@ -75,8 +76,10 @@ private:
   std::string world_frame_id;
   std::string drone_frame_id;
   std::string imu_frame_id;
+  std::string goal_frame_id;
 
   tf::TransformListener tf_lis;
+  tf::TransformBroadcaster tf_broad;
   //PID pid_x;
   //PID pid_y;
   //PID pid_z;

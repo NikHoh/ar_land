@@ -13,10 +13,12 @@ double get(
 flat_controller_node::flat_controller_node( const std::string& world_frame_id,
                                           const std::string& drone_frame_id,
                                             const std::string& imu_frame_id,
+                                            const std::string& goal_frame_id,
                                           const ros::NodeHandle& n)
   : world_frame_id(world_frame_id)
   , drone_frame_id(drone_frame_id)
   , imu_frame_id(imu_frame_id)
+  , goal_frame_id(goal_frame_id)
   , pid_yaw(
       func::get(n, "PIDs/Yaw/kp"),
       func::get(n, "PIDs/Yaw/kd"),
@@ -152,7 +154,11 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
-    a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual) + K_v*(tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs) + g_vec;
+    tf::Vector3 e_x = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual;
+    tf::Vector3 e_v = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs;
+    //ROS_INFO("e_x: %f, %f, %f \t e_v: %f, %f, %f", e_x.x(),e_x.y(),e_x.z(), e_v.x(), e_v.y(), e_v.z());
+    a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(e_x) + K_v*(e_v) + g_vec;
+
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -160,7 +166,6 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     catch(tf::TransformException &ex)
     {
       ROS_INFO("No Transformation from World to Drone found");
-
     }
 
     //tf::Matrix3x3 R = tf::Matrix3x3(tf_world_to_drone.getRotation());
@@ -208,11 +213,46 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     tf::Vector3 z_axis = tf::Vector3(0,0,1);
     tfScalar tilt_angle = z_axis.angle(a_ref);
     tfScalar tilt_angle_neg = a_ref.angle(z_axis);
+
+    // now tilt_angle is always poitive thus we need to change the sign depending on the quadrant
+
+    if(tools_func::sign(x_actual.x()) == tools_func::sign(a_ref.x()) && tools_func::sign(x_actual.y()) == tools_func::sign(a_ref.y()) )
+    {
+      tilt_angle = -tilt_angle;
+}
+
+
     //ROS_INFO("tilt_angles: %f, %f", tilt_angle, tilt_angle_neg);
 
 tf::Quaternion q = tf::Quaternion(R_ref_col_2, tilt_angle);
 
     tf::Matrix3x3 R_ref = tf::Matrix3x3(q);
+tf::StampedTransform tf_world_to_goal_pose;
+    try{
+      tf_lis.lookupTransform(world_frame_id, goal_frame_id, ros::Time(0), tf_world_to_goal_pose);
+    }
+    catch(tf::TransformException &ex)
+{}
+tf_world_to_goal_pose.setRotation(q);
+tf_world_to_goal_pose.frame_id_ = world_frame_id;
+tf_world_to_goal_pose.child_frame_id_ = "/crazyflie/goal_pose";
+tf_world_to_goal_pose.stamp_ = ros::Time::now();
+
+tf_broad.sendTransform(tf_world_to_goal_pose);
+
+tf::StampedTransform tf_world_to_drone_pose;
+    try{
+      tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone_pose);
+    }
+    catch(tf::TransformException &ex)
+{}
+tf_world_to_goal_pose.setRotation(q);
+tf_world_to_goal_pose.frame_id_ = world_frame_id;
+tf_world_to_goal_pose.child_frame_id_ = "/crazyflie/control_pose";
+tf_world_to_goal_pose.stamp_ = ros::Time::now();
+
+tf_broad.sendTransform(tf_world_to_goal_pose);
+
 
 
 
@@ -331,8 +371,15 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   float l1 = 0.588;
   float l2 = 3.03;
   x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*0.0*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
-  v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
-
+  //v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+  if(dt>0)
+  {
+    v_obs = (x_actual-x_actual_prev)/dt;
+  }
+  else
+  {
+    v_obs = tf::Vector3(0.0,0.0,0.0);
+}
   x_actual_prev = x_actual;
   v_obs_prev = v_obs;
   x_obs_prev = x_obs;
@@ -427,6 +474,7 @@ int main(int argc, char **argv)
   std::string world_frame_id;
   std::string drone_frame_id;
   std::string imu_frame_id;
+  std::string goal_frame_id;
   double frequency;
 
 
@@ -436,9 +484,11 @@ int main(int argc, char **argv)
 
   n.param<std::string>("imu_frame_id", imu_frame_id, "/imu");
 
+  n.param<std::string>("goal_frame_id", goal_frame_id, "/crazyflie/goal");
+
   n.param<double>("frequency", frequency, 100.0);
 
-  flat_controller_node controller(world_frame_id, drone_frame_id, imu_frame_id, n);
+  flat_controller_node controller(world_frame_id, drone_frame_id, imu_frame_id, goal_frame_id, n);
   controller.run(frequency);
 
   return 0;
