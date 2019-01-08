@@ -246,12 +246,12 @@ tf::StampedTransform tf_world_to_drone_pose;
     }
     catch(tf::TransformException &ex)
 {}
-tf_world_to_goal_pose.setRotation(q);
-tf_world_to_goal_pose.frame_id_ = world_frame_id;
-tf_world_to_goal_pose.child_frame_id_ = "/crazyflie/control_pose";
-tf_world_to_goal_pose.stamp_ = ros::Time::now();
+tf_world_to_drone_pose.setRotation(q);
+tf_world_to_drone_pose.frame_id_ = world_frame_id;
+tf_world_to_drone_pose.child_frame_id_ = "/crazyflie/control_pose";
+tf_world_to_drone_pose.stamp_ = ros::Time::now();
 
-tf_broad.sendTransform(tf_world_to_goal_pose);
+tf_broad.sendTransform(tf_world_to_drone_pose);
 
 
 
