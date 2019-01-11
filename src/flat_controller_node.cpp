@@ -371,7 +371,8 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   float l1 = 0.588;
   float l2 = 3.03;
   x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*0.0*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
-  //v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;                    // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+  v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;                   // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+  /*
   if(dt>0)
   {
     v_obs = (x_actual-x_actual_prev)/dt;
@@ -379,7 +380,7 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   else
   {
     v_obs = tf::Vector3(0.0,0.0,0.0);
-}
+}*/
   x_actual_prev = x_actual;
   v_obs_prev = v_obs;
   x_obs_prev = x_obs;
