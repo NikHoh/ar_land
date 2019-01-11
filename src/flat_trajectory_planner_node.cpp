@@ -35,6 +35,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   goal_position_in_board.setValue(0,0,0.7);
   frequency = 100;
   run_traj = false;
+  replan_traj = true;
   traj_started = false;
   traj_finished = false;
   calc_traj_with_real_values = false;
@@ -106,6 +107,15 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     tf::vector3TFToMsg(accel_goal_in_world,posVelAcc_in_world.acc);
 
     goal_posVelAcc_pub.publish(posVelAcc_in_world);
+
+    if(replan_traj)
+    {
+      ROS_INFO("Will replan trajectory");
+      traj_started = false;
+      traj_finished = false;
+      run_traj = true;
+    }
+
 /*
     // test for using PID Controllers
 nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);

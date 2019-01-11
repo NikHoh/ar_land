@@ -88,6 +88,7 @@ private:
   float dt;
   float t_prev;
   bool run_traj;
+  bool replan_traj;
   bool traj_started;
   bool traj_finished;
 
