@@ -35,7 +35,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   goal_position_in_board.setValue(0,0,0.7);
   frequency = 100;
   run_traj = false;
-  replan_traj = true;
+  replan_traj = false;
   traj_started = false;
   traj_finished = false;
   calc_traj_with_real_values = false;

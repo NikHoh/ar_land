@@ -271,7 +271,7 @@ tf_broad.sendTransform(tf_world_to_drone_pose);
 
 
     geometry_msgs::Twist control_out;
-    control_out.linear.x = std::max(-10.0, std::min(10.0, pitch_ref/M_PI*180.0));
+    control_out.linear.x = std::max(-10.0, std::min(10.0, pitch_ref/M_PI*180.0));  // maybe switch roll_ref and pitch_ref
     control_out.linear.y = std::max(-10.0, std::min(10.0, roll_ref/M_PI*180.0));
     control_out.linear.z = thrust;
     control_out.angular.z = pid_yaw.update(yaw, yaw_ref);
@@ -371,11 +371,15 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   float l1 = 0.588;
   float l2 = 3.03;
   x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*0.0*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
-  v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;                   // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+  v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;  // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+
   /*
-  if(dt>0)
+  tf::Vector3 v_obs_unfiltered;
+  float alpha = 0.3;
+if(dt>0)
   {
-    v_obs = (x_actual-x_actual_prev)/dt;
+    v_obs_unfiltered = (x_actual-x_actual_prev)/dt;
+    v_obs = alpha*v_obs_unfiltered + (1-alpha)*v_obs_prev;  // low pass filter 1. order
   }
   else
   {
