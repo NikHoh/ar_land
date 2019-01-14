@@ -200,9 +200,13 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     goal_final_in_world.setValue(x,y,z);
 
-    tf::Vector3 R_ref_col_2 = (a_ref.cross(goal_final_in_world-x_actual)).normalized();
+    tf::Vector3 tilt_vector = (a_ref.cross(goal_final_in_world-x_actual)).normalized();
 
-    tf::Vector3 R_ref_col_1 = R_ref_col_2.cross(R_ref_col_3);
+    tilt_vector = R.inverse()*tilt_vector;
+
+    //ROS_INFO("tilt_vector: %f, %f, %f",tilt_vector.getX(),tilt_vector.getY,tilt_vector.getZ());
+
+    tf::Vector3 R_ref_col_1 = tilt_vector.cross(R_ref_col_3);
 
     /*
     tf::Matrix3x3 R_ref =  tf::Matrix3x3(R_ref_col_1.x(), R_ref_col_2.x(), R_ref_col_3.x(),
@@ -224,9 +228,11 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     //ROS_INFO("tilt_angles: %f, %f", tilt_angle, tilt_angle_neg);
 
-tf::Quaternion q = tf::Quaternion(R_ref_col_2, tilt_angle);
+tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
+//q = tf_world_to_drone.getRotation()*q;
 
     tf::Matrix3x3 R_ref = tf::Matrix3x3(q);
+    //R_ref = R*R_ref;
 tf::StampedTransform tf_world_to_goal_pose;
     try{
       tf_lis.lookupTransform(world_frame_id, goal_frame_id, ros::Time(0), tf_world_to_goal_pose);
@@ -265,7 +271,14 @@ tf_broad.sendTransform(tf_world_to_drone_pose);
 
 
     tfScalar roll_ref, pitch_ref, yaw_ref;
-
+    tfScalar roll_test,pitch_test, yaw_test;
+/*
+    R.inverse().getEulerYPR(yaw_test,pitch_test,roll_test);
+    tf::Matrix3x3 R_transform;
+    R_transform.setEulerYPR(yaw_test,0,0);
+    R_ref = R_transform*R_ref;
+    printRotation(R_transform);
+*/
     R_ref.getEulerYPR(yaw_ref, pitch_ref, roll_ref);
 
 
@@ -274,7 +287,7 @@ tf_broad.sendTransform(tf_world_to_drone_pose);
     control_out.linear.x = std::max(-10.0, std::min(10.0, pitch_ref/M_PI*180.0));  // maybe switch roll_ref and pitch_ref
     control_out.linear.y = std::max(-10.0, std::min(10.0, roll_ref/M_PI*180.0));
     control_out.linear.z = thrust;
-    control_out.angular.z = pid_yaw.update(yaw, yaw_ref);
+    control_out.angular.z =  0;//pid_yaw.update(yaw, yaw_ref);
 
     control_out_pub.publish(control_out);
       /*
@@ -468,6 +481,10 @@ tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking
   tf::Matrix3x3 fusedRotation = tf::Matrix3x3(bx_star.getX(),by_star.getX(),bz_star.getX(),bx_star.getY(),by_star.getY(),bz_star.getY(),bx_star.getZ(),by_star.getZ(),bz_star.getZ());
   //ROS_INFO("fused :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",fusedRotation[0].getX(),fusedRotation[0].getY(),fusedRotation[0].getZ(),fusedRotation[1].getX(),fusedRotation[1].getY(),fusedRotation[1].getZ(),fusedRotation[2].getX(),fusedRotation[2].getY(),fusedRotation[2].getZ());
   return fusedRotation;
+}
+
+void printRotation(tf::Matrix3x3 matr){
+  ROS_INFO("Rotation :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",matr[0].getX(),matr[0].getY(),matr[0].getZ(),matr[1].getX(),matr[1].getY(),matr[1].getZ(),matr[2].getX(),matr[2].getY(),matr[2].getZ());
 }
 
 int main(int argc, char **argv)
