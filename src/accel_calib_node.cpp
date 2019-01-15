@@ -63,7 +63,7 @@ void accel_calib_node::imu_cb(const sensor_msgs::Imu::ConstPtr& msg){
 
 void accel_calib_node::save_all() {
   std::ofstream file;
-  file.open ("/home/johannes/calib-data.csv", std::ofstream::out | std::ofstream::app);
+  file.open ("/home/niko/calib-data.csv", std::ofstream::out | std::ofstream::app);
   file << "x,y,z\n";
 
   for (int i=0; i<out_buffer.size(); i++) {
