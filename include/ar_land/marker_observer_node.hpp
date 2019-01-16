@@ -8,6 +8,10 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 
+/**
+ * @brief The MarkerObserver class provides the transformation of the marker in world coordinate frame and in the future some estimate for movement
+ */
+
 class MarkerObserver
 {
 public:

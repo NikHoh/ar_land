@@ -72,6 +72,9 @@ private:
 
   float z_integral;
   float thrust_fact;
+  float integral_part_z;
+  float Ki_z;
+  float wind_up;
 
   std::string world_frame_id;
   std::string drone_frame_id;

@@ -10,6 +10,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 
+/**
+ * @brief The FishEyeRectifier class rectifies the image of a fisheye camera with the camera parameters from the camera_info topic and provides the rectified image.
+ */
 
 class FishEyeRectifier{
   public:

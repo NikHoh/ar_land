@@ -5,6 +5,12 @@
 #include <ar_land/goal_change.h>
 
 
+/**
+ * @brief The JoyController class can be used to transform controller inputs into commands for a quadrocopter and request services for landing, takeoff and emergency situations.
+ *
+ * Also provides some goal change commands.
+ */
+
 
 class JoyController
 {

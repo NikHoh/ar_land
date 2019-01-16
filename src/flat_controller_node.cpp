@@ -32,6 +32,8 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   , resetPID(false)
   , observer_init(false)
   , recievedImuRot(false)
+  , integral_part_z(0)
+  , wind_up(0)
 
   // Body of class definition
 {
@@ -80,6 +82,7 @@ void flat_controller_node::run(double frequency)
 void flat_controller_node::receiveTrajectory(const ar_land::PosVelAcc::ConstPtr& msg)
 {
   posVelAcc_goal_in_world_msg = *msg;
+  integral_part_z = 0.0; // because for every point on a trajectory it should be renewed
 }
 
 void flat_controller_node::receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg)
@@ -159,6 +162,9 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     //ROS_INFO("e_x: %f, %f, %f \t e_v: %f, %f, %f", e_x.x(),e_x.y(),e_x.z(), e_v.x(), e_v.y(), e_v.z());
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(e_x) + K_v*(e_v) + g_vec;
 
+    float anti_wind = 1;
+    integral_part_z += e_x.getZ() - wind_up*anti_wind/(thrust_fact*0.043);
+
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -183,10 +189,17 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     //ROS_INFO("quat: %f   %f   %f   %f", tf_world_to_drone.getRotation().x(), tf_world_to_drone.getRotation().y(), tf_world_to_drone.getRotation().z(), tf_world_to_drone.getRotation().w());
 
-    double thrust = a_ref.dot(R.getColumn(2))*thrust_fact*0.043; // Factor (113000, 134000) in order to achieve a thrust of 44500 when drone should hover
+    double thrust = (a_ref.dot(R.getColumn(2))  + Ki_z * integral_part_z)*thrust_fact*0.043; // Factor (113000, 134000) in order to achieve a thrust of 44500 when drone should hover
                                                            // getColumn(2) returns third column
 
     // control limit for thrust
+    if(thrust>60000.0){
+      wind_up = thrust-60000.0;
+    } else if(thrust<27000.0){
+      wind_up = thrust-27000.0;
+    } else{
+      wind_up = 0.0;
+    }
     thrust = std::max(27000.0, std::min(60000.0, thrust));
 
     tf::Vector3 R_ref_col_3 = a_ref.normalized();
@@ -338,6 +351,10 @@ tf_broad.sendTransform(tf_world_to_drone_pose);
 
 }
 
+/*
+  Implementation of Observer for simple integration model of velocity. Poles in the s-space are at s = 10 +- 5j
+*/
+
 void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
 
 
@@ -386,6 +403,8 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*0.0*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
   v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;  // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
 
+
+  // alternative as simple differentiation with low pass filter
   /*
   tf::Vector3 v_obs_unfiltered;
   float alpha = 0.3;
@@ -428,6 +447,7 @@ void flat_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKI(config.Ki_yaw);
   pid_yaw.setKD(config.Kd_yaw);
   thrust_fact = config.thrust_fact;
+  Ki_z = config.Ki_z;
 
 }
 
