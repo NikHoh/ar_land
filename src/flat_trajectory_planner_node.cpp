@@ -120,6 +120,7 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
 
 
     // test for using PID Controllers
+    /*
 nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     geometry_msgs::TransformStamped T_world_goal_msg;
     geometry_msgs::PoseStamped pose_goal_in_world_msg;
@@ -134,7 +135,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
-
+*/
 
     // -----------------------------------------------
 
@@ -145,7 +146,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     ROS_INFO("State change to TakeOff");
 
     // test for using PID Controllers
-
+    /*
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -168,7 +169,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
-
+    */
 
     // -----------------------------------------------
 
@@ -385,7 +386,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       // ----------------------------------------------------------------------------
 
       // test for using PID Controllers
-
+      /*
       geometry_msgs::TransformStamped T_world_goal_msg;
       geometry_msgs::PoseStamped pose_goal_in_world_msg;
       tf::StampedTransform world_to_goal_tf;
@@ -399,7 +400,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
 
       pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
 
-
+      */
       // -----------------------------------------------
 
 

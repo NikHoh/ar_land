@@ -450,7 +450,7 @@ void flat_controller_node::dynamic_reconfigure_callback(
 
   ROS_INFO("Reconfigure Request: %f %f %f,%f %f %f", config.Kp_x, config.Kd_x, config.Kp_y, config.Kd_y, config.Kp_z, config.Kd_z);
 
- /*
+
   K_x.setValue(config.Kp_x,0,0,0,config.Kp_y,0,0,0,config.Kp_z);
   K_v.setValue(config.Kd_x,0,0,0,config.Kd_y,0,0,0,config.Kd_z);
 
@@ -459,7 +459,7 @@ void flat_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKD(config.Kd_yaw);
   thrust_fact = config.thrust_fact;
   Ki_z = config.Ki_z;
-   */
+
 }
 
 void flat_controller_node::initializeRotation(){
