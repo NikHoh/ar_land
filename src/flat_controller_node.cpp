@@ -209,7 +209,15 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     }
     thrust = std::max(27000.0, std::min(60000.0, thrust));
 
+
+
     tf::Vector3 R_ref_col_3 = a_ref.normalized();
+
+
+
+
+
+
 
     tf::Vector3  goal_final_in_world;
     float x, y, z;
@@ -228,11 +236,11 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     tf::Vector3 R_ref_col_1 = tilt_vector.cross(R_ref_col_3);
 
-    /*
-    tf::Matrix3x3 R_ref =  tf::Matrix3x3(R_ref_col_1.x(), R_ref_col_2.x(), R_ref_col_3.x(),
-                                         R_ref_col_1.y(), R_ref_col_2.y(), R_ref_col_3.y(),
-                                         R_ref_col_1.z(), R_ref_col_2.z(), R_ref_col_3.z());
-                                         */
+
+   // tf::Matrix3x3 R_ref =  tf::Matrix3x3(R_ref_col_1.x(), R_ref_col_2.x(), R_ref_col_3.x(),
+    //                                     R_ref_col_1.y(), R_ref_col_2.y(), R_ref_col_3.y(),
+     //                                    R_ref_col_1.z(), R_ref_col_2.z(), R_ref_col_3.z());
+
 
     tf::Vector3 z_axis = tf::Vector3(0,0,1);
     tfScalar tilt_angle = z_axis.angle(a_ref);
@@ -253,31 +261,8 @@ tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
 
     tf::Matrix3x3 R_ref = tf::Matrix3x3(q);
     //R_ref = R*R_ref;
-tf::StampedTransform tf_world_to_goal_pose;
-    try{
-      tf_lis.lookupTransform(world_frame_id, goal_frame_id, ros::Time(0), tf_world_to_goal_pose);
-    }
-    catch(tf::TransformException &ex)
-{}
-tf_world_to_goal_pose.setRotation(q);
-tf_world_to_goal_pose.frame_id_ = world_frame_id;
-tf_world_to_goal_pose.child_frame_id_ = "/crazyflie/goal_pose";
-tf_world_to_goal_pose.stamp_ = ros::Time::now();
 
-tf_broad.sendTransform(tf_world_to_goal_pose);
 
-tf::StampedTransform tf_world_to_drone_pose;
-    try{
-      tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone_pose);
-    }
-    catch(tf::TransformException &ex)
-{}
-tf_world_to_drone_pose.setRotation(q);
-tf_world_to_drone_pose.frame_id_ = world_frame_id;
-tf_world_to_drone_pose.child_frame_id_ = "/crazyflie/control_pose";
-tf_world_to_drone_pose.stamp_ = ros::Time::now();
-
-tf_broad.sendTransform(tf_world_to_drone_pose);
 
 
 
@@ -300,6 +285,47 @@ tf_broad.sendTransform(tf_world_to_drone_pose);
     printRotation(R_transform);
 */
     R_ref.getEulerYPR(yaw_ref, pitch_ref, roll_ref);
+
+    //------------------------------------------------------------------------
+
+      tf::Matrix3x3 v_matrix;
+      v_matrix.setEulerYPR(yaw,0,0);
+      tf::Vector3 b = v_matrix.inverse()*R_ref_col_3;
+      pitch_ref = std::atan(b.getX()/b.getZ());
+      roll_ref = std::atan2(-b.getY(),std::sqrt(pow(b.getX(),2) + pow(b.getZ(),2)));
+
+      q.setEuler(yaw,pitch_ref,roll_ref);
+
+    //-------------------------------------------------------------------------
+
+      //printRotation(v_matrix);
+      //ROS_INFO("pitch_ref: %f     roll_ref: %f", pitch_ref,roll_ref);
+
+      tf::StampedTransform tf_world_to_goal_pose;
+          try{
+            tf_lis.lookupTransform(world_frame_id, goal_frame_id, ros::Time(0), tf_world_to_goal_pose);
+          }
+          catch(tf::TransformException &ex)
+      {}
+      tf_world_to_goal_pose.setRotation(q);
+      tf_world_to_goal_pose.frame_id_ = world_frame_id;
+      tf_world_to_goal_pose.child_frame_id_ = "/crazyflie/goal_pose";
+      tf_world_to_goal_pose.stamp_ = ros::Time::now();
+
+      tf_broad.sendTransform(tf_world_to_goal_pose);
+
+      tf::StampedTransform tf_world_to_drone_pose;
+          try{
+            tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone_pose);
+          }
+          catch(tf::TransformException &ex)
+      {}
+      tf_world_to_drone_pose.setRotation(q);
+      tf_world_to_drone_pose.frame_id_ = world_frame_id;
+      tf_world_to_drone_pose.child_frame_id_ = "/crazyflie/control_pose";
+      tf_world_to_drone_pose.stamp_ = ros::Time::now();
+
+      tf_broad.sendTransform(tf_world_to_drone_pose);
 
     ar_land::controller_debug ctrl_msg;
     ctrl_msg.I_part = Ki_z * integral_part_z*thrust_fact*0.043;

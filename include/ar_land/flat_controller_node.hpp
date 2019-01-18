@@ -123,5 +123,6 @@ private:
 };
 
 tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking_room);
+void printRotation(tf::Matrix3x3 matr);
 
 #endif // FLAT_CONTROLLER_NODE_H
