@@ -84,6 +84,8 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     msg.angular.z = 0;
     control_out_pub.publish(msg);
     nh.setParam("/ar_land/flat_controller_node/controller_enabled", false);
+    nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
+    nh.setParam("/ar_land/flat_controller_node/resetPID", true);
     ROS_INFO("State change to Idle");
   }
     break;
@@ -116,29 +118,59 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
       run_traj = true;
     }
 
-/*
+
     // test for using PID Controllers
 nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     geometry_msgs::TransformStamped T_world_goal_msg;
     geometry_msgs::PoseStamped pose_goal_in_world_msg;
     tf::StampedTransform world_to_goal_tf;
     world_to_goal_tf.setOrigin(goal_position_in_world);
-    world_to_goal_tf.child_frame_id_ = goal_frame_id;
+    world_to_goal_tf.setRotation(tf::Quaternion::getIdentity());
     world_to_goal_tf.frame_id_ = world_frame_id;
+    world_to_goal_tf.child_frame_id_ = goal_frame_id;    
     world_to_goal_tf.stamp_ = ros::Time::now();
     tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
+
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
 
 
     // -----------------------------------------------
-    */
+
   }
     break;
   case TakingOff:
   {
     ROS_INFO("State change to TakeOff");
+
+    // test for using PID Controllers
+
+    tf::StampedTransform tf_world_to_drone;
+    try{
+      tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+    }
+    catch(tf::TransformException &ex)
+    {
+      ROS_INFO("No Transformation from World to Drone found");
+    }
+
+    geometry_msgs::TransformStamped T_world_goal_msg;
+    geometry_msgs::PoseStamped pose_goal_in_world_msg;
+    tf::StampedTransform world_to_goal_tf;
+    world_to_goal_tf.setOrigin(tf_world_to_drone.getOrigin());
+    world_to_goal_tf.setRotation(tf::Quaternion::getIdentity());
+    world_to_goal_tf.frame_id_ = world_frame_id;
+    world_to_goal_tf.child_frame_id_ = goal_frame_id;
+    world_to_goal_tf.stamp_ = ros::Time::now();
+    tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
+
+    tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
+
+    pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
+
+
+    // -----------------------------------------------
 
     // set 0.5m above world frame as takeoff goal
     x_f = 0.0;
@@ -149,6 +181,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
     nh.setParam("/ar_land/flat_controller_node/z_final_in_world", z_f);
     nh.setParam("/ar_land/flat_controller_node/controller_enabled", true);
+    nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     traj_started = false;
     traj_finished = false;
     run_traj = true;
@@ -159,7 +192,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     ROS_INFO("State change to Landing");
     x_f = board_position_in_world.x();
     y_f = board_position_in_world.y();
-    z_f = board_position_in_world.z();
+    z_f = board_position_in_world.z()-0.2;
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
     nh.setParam("/ar_land/flat_controller_node/z_final_in_world", z_f);
@@ -173,6 +206,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
   {
     nh.setParam("/ar_land/flat_controller_node/resetPID", true);
     nh.setParam("/ar_land/flat_controller_node/controller_enabled", false);
+    nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
     traj_started = false;
     traj_finished = false;
     run_traj = false;
@@ -214,15 +248,20 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   //double latency_time = ros::Time::now().toSec(); // for debugging purposes
   if(flight_state == Landing)
   {
+    zp_f = - 0.3;
     updateGoalPos(); // sets the current board position as goal position
     //ROS_INFO("Set new goal to (%0.2f, %0.2f, %0.2f)", x_f, y_f, z_f);
   }  
+  else
+  {
+    zp_f = 0;
+  }
 
   if(run_traj)
   {
     float vel = 0.2; // [m/s]
     if(!traj_started)
-    {
+    {          
       //t_prev = 0;
       //rost_prev = ros::Time::now();
       // initializes start of completely new commanded trajectory with zero velocities and accelerations and actual position of drone
@@ -236,8 +275,9 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       zpp_0 = 0.0;
 
 
-      // actual position of drone
-
+      // actual position of drone as start point for trajectory when landing
+      if(flight_state == TakingOff)
+      {
       tf::StampedTransform tf_world_to_drone;
       try{
         tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -249,7 +289,13 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       x_0 = tf_world_to_drone.getOrigin().x();
       y_0 = tf_world_to_drone.getOrigin().y();
       z_0 = tf_world_to_drone.getOrigin().z();
-
+}
+      else // if not TakingOff
+      {
+      x_0 = x_f_old;
+      y_0 = y_f_old;
+      z_0 = z_f_old;
+      }
       T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
     }
 
@@ -337,13 +383,14 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       tf_br.sendTransform(traj_debug);
 
       // ----------------------------------------------------------------------------
-/*
+
       // test for using PID Controllers
 
       geometry_msgs::TransformStamped T_world_goal_msg;
       geometry_msgs::PoseStamped pose_goal_in_world_msg;
       tf::StampedTransform world_to_goal_tf;
       world_to_goal_tf.setOrigin(goal_position_in_world);
+      world_to_goal_tf.setRotation(tf::Quaternion::getIdentity());
       world_to_goal_tf.child_frame_id_ = goal_frame_id;
       world_to_goal_tf.frame_id_ = world_frame_id;
       world_to_goal_tf.stamp_ = ros::Time::now();
@@ -354,7 +401,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
 
 
       // -----------------------------------------------
-*/
+
 
       if(calc_traj_with_real_values) // sets position, velocity and acceleration for new trajectory calculation step with the real measured and observed values
       {
@@ -392,19 +439,21 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
         xpp_0 = xpp_out;
         ypp_0 = ypp_out;
         zpp_0 = zpp_out;
-        ROS_INFO("Traj point: %0.2f, %0.2f, %0.2f", z_out, zp_out, zpp_out);
+       // ROS_INFO("Traj point: %0.2f, %0.2f, %0.2f", z_out, zp_out, zpp_out);
 
         //t_prev = t;
       }
 
 
-      if(flight_state == Landing)// && (x_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
+      if(flight_state == Landing && (z_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
       {
         //ROS_INFO("%f",std::abs(last_accel_z-accel_z));
         // "hear" for the bump
-        if(std::abs(last_accel_z-accel_z)>2)
+        ROS_INFO("diff_z: %f: ", last_accel_z-accel_z);
+        if(accel_z-last_accel_z>0.49&&accel_z>0.2)
         {
           ROS_INFO("Bump detected");
+
           traj_finished = true;
         }
       }
@@ -418,11 +467,14 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
 
     if(traj_finished) // published desired position vel and acc as long as another traj is demanded to let the drone hover (maybe not really neccessary cause once the final data are published once everything is okay
     {
+      x_f_old = x_f;
+      y_f_old = y_f;
+      z_f_old = z_f;
       ar_land::flight_state_changeRequest req;
       ar_land::flight_state_changeResponse res;
       if(flight_state == Landing)
       {
-        req.flight_state = 0; // Idle
+        req.flight_state = 0; // Emergency
       }
       else
       {

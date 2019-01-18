@@ -119,6 +119,7 @@ private:
   double xpp_0, ypp_0, zpp_0;
 
   // final position, velocity and acceleration
+  double x_f_old, y_f_old, z_f_old;
   double x_f, y_f, z_f;
   double xp_f, yp_f, zp_f;
   double xpp_f, ypp_f, zpp_f;

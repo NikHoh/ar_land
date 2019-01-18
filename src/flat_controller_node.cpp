@@ -53,6 +53,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   control_error_pub = nh.advertise<geometry_msgs::Vector3>("control_error_topic", 1);
   obs_posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>("obs_posVelAcc_topic", 1);
+  controller_debug_pub = nh.advertise<ar_land::controller_debug>("z_controller_debug_topic",1);
 
   // Subscribers
   //pose_goal_in_world_sub = nh.subscribe("/ar_land/pose_goal_in_world_topic", 1, &flat_controller_node::goalChanged, this);
@@ -82,7 +83,7 @@ void flat_controller_node::run(double frequency)
 void flat_controller_node::receiveTrajectory(const ar_land::PosVelAcc::ConstPtr& msg)
 {
   posVelAcc_goal_in_world_msg = *msg;
-  integral_part_z = 0.0; // because for every point on a trajectory it should be renewed
+
 }
 
 void flat_controller_node::receiveIMUdata(const sensor_msgs::Imu::ConstPtr& msg)
@@ -147,13 +148,19 @@ void flat_controller_node::pidStart()
 void flat_controller_node::iteration(const ros::TimerEvent& e)
 {
   nh.param<bool>("/ar_land/flat_controller_node/controller_enabled", controller_enabled, false);
+  if(!controller_enabled){
 
+  }
   if(controller_enabled){
 
     if(!controller_started)
     {
       flat_controller_node::pidStart();
+      prev_time_ctrl = ros::Time::now();
+    integral_part_z = 0.0; // because for every point on a trajectory it should be renewed
     }
+
+    float dt = ros::Time::now().toSec() - prev_time_ctrl.toSec();
 
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
@@ -163,7 +170,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(e_x) + K_v*(e_v) + g_vec;
 
     float anti_wind = 1;
-    integral_part_z += e_x.getZ() - wind_up*anti_wind/(thrust_fact*0.043);
+    integral_part_z += (e_x.getZ() - wind_up*anti_wind/(thrust_fact*0.043))*dt;
 
     tf::StampedTransform tf_world_to_drone;
     try{
@@ -294,7 +301,11 @@ tf_broad.sendTransform(tf_world_to_drone_pose);
 */
     R_ref.getEulerYPR(yaw_ref, pitch_ref, roll_ref);
 
-
+    ar_land::controller_debug ctrl_msg;
+    ctrl_msg.I_part = Ki_z * integral_part_z*thrust_fact*0.043;
+    ctrl_msg.PD_part = a_ref.dot(R.getColumn(2))*thrust_fact*0.043;
+    ctrl_msg.controller_out = thrust;
+    controller_debug_pub.publish(ctrl_msg);
 
     geometry_msgs::Twist control_out;
     control_out.linear.x = std::max(-10.0, std::min(10.0, pitch_ref/M_PI*180.0));  // maybe switch roll_ref and pitch_ref
@@ -439,7 +450,7 @@ void flat_controller_node::dynamic_reconfigure_callback(
 
   ROS_INFO("Reconfigure Request: %f %f %f,%f %f %f", config.Kp_x, config.Kd_x, config.Kp_y, config.Kd_y, config.Kp_z, config.Kd_z);
 
-
+ /*
   K_x.setValue(config.Kp_x,0,0,0,config.Kp_y,0,0,0,config.Kp_z);
   K_v.setValue(config.Kd_x,0,0,0,config.Kd_y,0,0,0,config.Kd_z);
 
@@ -448,7 +459,7 @@ void flat_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKD(config.Kd_yaw);
   thrust_fact = config.thrust_fact;
   Ki_z = config.Ki_z;
-
+   */
 }
 
 void flat_controller_node::initializeRotation(){

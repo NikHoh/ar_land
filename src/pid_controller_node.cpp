@@ -112,7 +112,7 @@ void pid_controller_node::pidStart()
     nh.getParam("/ar_land/pid_controller_node/z_integral", z_integral);
     pid_x.set(0);
     pid_y.set(0);
-    pid_z.set(z_integral/ pid_z.ki());
+    pid_z.set(44500/ pid_z.ki());
     pid_yaw.set(0);
   }
   controller_started = true;
@@ -171,7 +171,7 @@ void pid_controller_node::iteration(const ros::TimerEvent& e)
       control_error_msg.z = pid_z.getError();
 
       control_error_pub.publish(control_error_msg);
-      ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
+      //ROS_INFO("E: %f P: %f I: %f D: %f Out: %f ", pid_z.getError(), pid_z.getP(), pid_z.getI(), pid_z.getD(), pid_z.getOutput() );
 
       control_out_pub.publish(control_out);
     }
@@ -194,7 +194,7 @@ void pid_controller_node::dynamic_reconfigure_callback(
   //ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
 
   // Coefficients for the PID controller
-  /*
+
   pid_x.setKP(config.Kp_x);
   pid_x.setKI(config.Ki_x);
   pid_x.setKD(config.Kd_x);
@@ -206,7 +206,7 @@ void pid_controller_node::dynamic_reconfigure_callback(
   pid_z.setKP(config.Kp_z);
   pid_z.setKI(config.Ki_z);
   pid_z.setKD(config.Kd_z);
-  */
+
 
   pid_yaw.setKP(config.Kp_yaw);
   pid_yaw.setKI(config.Ki_yaw);
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 
   n.param<std::string>("drone_frame_id", drone_frame_id, "/crazyflie/base_link");
 
-  n.param<double>("frequency", frequency, 30.0);
+  n.param<double>("frequency", frequency, 100.0);
 
   pid_controller_node controller(world_frame_id, drone_frame_id, n);
   controller.run(frequency);

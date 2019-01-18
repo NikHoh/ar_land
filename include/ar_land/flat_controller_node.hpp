@@ -15,8 +15,9 @@
 #include <dynamic_reconfigure/server.h>
 #include <ar_land/dynamic_param_configConfig.h>
 #include <ar_land/PosVelAcc.h>
+
 #include <sensor_msgs/Imu.h>
-#include <ar_land/PosVelAcc.h>
+#include <ar_land/controller_debug.h>
 #include <crazyflie_driver/GenericLogData.h>
 #include <math.h>
 
@@ -62,6 +63,7 @@ private:
   ros::Publisher control_out_pub;
   ros::Publisher control_error_pub;
   ros::Publisher obs_posVelAcc_pub;
+  ros::Publisher controller_debug_pub;
 
 
   // Variables
@@ -114,6 +116,7 @@ private:
   tf::Vector3 x_actual_prev;
 
   ros::Time prev_time;
+  ros::Time prev_time_ctrl;
 
 
 

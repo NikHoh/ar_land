@@ -61,6 +61,7 @@ find_package(OpenCV REQUIRED)
  add_message_files(
    FILES
    PosVelAcc.msg
+   controller_debug.msg
 #   Message2.msg
  )
 
@@ -102,7 +103,8 @@ find_package(OpenCV REQUIRED)
 
 ## Generate dynamic parameters
 generate_dynamic_reconfigure_options(
-  cfg/dynamic_param_config_flat.cfg
+  cfg/dynamic_param_config.cfg
+  #cfg/dynamic_param_config_flat.cfg
 )
 
 ###################################
