@@ -57,6 +57,10 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   T = 0;
   last_accel_z = 0;
   accel_z = 0;
+  x_f_corr = 0;
+  y_f_corr = 0;
+  z_f_corr = 0;
+  land_straight = 1;
 
 
 }
@@ -82,10 +86,11 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     msg.angular.x = 0;
     msg.angular.y = 0;
     msg.angular.z = 0;
-    control_out_pub.publish(msg);
+control_out_pub.publish(msg);
     nh.setParam("/ar_land/flat_controller_node/controller_enabled", false);
     nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
     nh.setParam("/ar_land/flat_controller_node/resetPID", true);
+control_out_pub.publish(msg);
     ROS_INFO("State change to Idle");
   }
     break;
@@ -249,9 +254,21 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   //double latency_time = ros::Time::now().toSec(); // for debugging purposes
   if(flight_state == Landing)
   {
-    zp_f = - 0.3;
+
     updateGoalPos(); // sets the current board position as goal position
-    z_f = z_f - 0.08;
+
+    if(land_straight)
+    {
+    z_f = z_f + z_f_corr;
+    x_f = x_f + x_f_corr;
+    y_f = y_f + y_f_corr;
+    zp_f = 0;
+    }
+    else
+    {
+      zp_f = - 0.6;
+      z_f = z_f - 0.11;
+    }
     //ROS_INFO("Set new goal to (%0.2f, %0.2f, %0.2f)", x_f, y_f, z_f);
   }  
   else
@@ -261,7 +278,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.2; // [m/s]
+    float vel = 0.325; // [m/s]
     if(!traj_started)
     {          
       //t_prev = 0;
@@ -297,6 +314,26 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       x_0 = x_f_old;
       y_0 = y_f_old;
       z_0 = z_f_old;
+      // ----------------------------------------------------------------
+      // try to assign a end position that is not on the ground but beneath
+      tf::StampedTransform tf_world_to_drone;
+      try{
+        tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+      }
+      catch(tf::TransformException &ex)
+      {
+        ROS_INFO("No Transformation from World to Drone found");
+      }
+      double delta_x = -tf_world_to_drone.getOrigin().x() + x_f;
+      double delta_y = -tf_world_to_drone.getOrigin().y() + y_f;
+      double delta_z = -tf_world_to_drone.getOrigin().z() + z_f;
+
+      tf::Vector3 vector = tf::Vector3(delta_x, delta_y, 0).normalized()*0.1;
+
+      x_f_corr = vector.x();
+      y_f_corr = vector.y();
+      z_f_corr = vector.z();
+      // ----------------------------------------------------------------
       }
       T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
@@ -454,7 +491,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
         //ROS_INFO("%f",std::abs(last_accel_z-accel_z));
         // "hear" for the bump
         ROS_INFO("diff_z: %f: ", last_accel_z-accel_z);
-        if(accel_z-last_accel_z>0.49&&accel_z>0.2)
+        if(accel_z-last_accel_z>3&&accel_z>0.2)
         {
           ROS_INFO("Bump detected");
 

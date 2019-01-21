@@ -148,9 +148,7 @@ void flat_controller_node::pidStart()
 void flat_controller_node::iteration(const ros::TimerEvent& e)
 {
   nh.param<bool>("/ar_land/flat_controller_node/controller_enabled", controller_enabled, false);
-  if(!controller_enabled){
 
-  }
   if(controller_enabled){
 
     if(!controller_started)
@@ -161,6 +159,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     }
 
     float dt = ros::Time::now().toSec() - prev_time_ctrl.toSec();
+    prev_time_ctrl = ros::Time::now();
 
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);

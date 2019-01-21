@@ -91,6 +91,7 @@ private:
   bool replan_traj;
   bool traj_started;
   bool traj_finished;
+  bool land_straight;
 
   bool calc_traj_with_real_values;
 
@@ -123,6 +124,7 @@ private:
   double x_f, y_f, z_f;
   double xp_f, yp_f, zp_f;
   double xpp_f, ypp_f, zpp_f;
+  double  x_f_corr, y_f_corr, z_f_corr;
 
   float T;
 
