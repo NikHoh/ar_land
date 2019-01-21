@@ -193,7 +193,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     ROS_INFO("State change to Landing");
     x_f = board_position_in_world.x();
     y_f = board_position_in_world.y();
-    z_f = board_position_in_world.z()-0.2;
+    z_f = board_position_in_world.z();
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
     nh.setParam("/ar_land/flat_controller_node/z_final_in_world", z_f);
@@ -251,6 +251,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   {
     zp_f = - 0.3;
     updateGoalPos(); // sets the current board position as goal position
+    z_f = z_f - 0.08;
     //ROS_INFO("Set new goal to (%0.2f, %0.2f, %0.2f)", x_f, y_f, z_f);
   }  
   else
@@ -298,6 +299,8 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       z_0 = z_f_old;
       }
       T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
+      ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
+      ROS_INFO("End Traj: \t %f, %f, %f", x_f, y_f, z_f);
     }
 
     if(!traj_finished)
@@ -475,7 +478,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       ar_land::flight_state_changeResponse res;
       if(flight_state == Landing)
       {
-        req.flight_state = 0; // Emergency
+        req.flight_state = 0; // Idle
       }
       else
       {
@@ -523,9 +526,9 @@ bool flat_trajectory_planner_node::goal_change(ar_land::goal_change::Request& re
     ROS_INFO("No Transformation from World to Drone found");
   }
 
-  x_f = tf_world_to_drone.getOrigin().x();
-  y_f = tf_world_to_drone.getOrigin().y();
-  z_f = tf_world_to_drone.getOrigin().z();
+  //x_f = tf_world_to_drone.getOrigin().x();
+  //y_f = tf_world_to_drone.getOrigin().y();
+  //z_f = tf_world_to_drone.getOrigin().z();
 
   switch(req.button_code)
   {
