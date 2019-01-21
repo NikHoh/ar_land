@@ -58,24 +58,14 @@ void MarkerObserver::getCamBoardTf(const geometry_msgs::TransformStamped &T_cam_
     }
   }
   previous_world_to_board_tf = world_to_board_tf;
+  tf_broadcaster.sendTransform(world_to_board_tf);
 
 }
 
-//remove as soon as possible and transfer functionality back to callback method for it makes no sense
-void MarkerObserver::updateMarkerPose(const ros::TimerEvent& e) {
-
-
-if(!world_to_board_tf.frame_id_.empty())
-{
-  world_to_board_tf.stamp_ = ros::Time::now();
-  tf_broadcaster.sendTransform(world_to_board_tf); // broadcasts the world_to_drone_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
-}
-}
 
 void MarkerObserver::run(double frequency)
 {
   ros::NodeHandle node;
-  ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &MarkerObserver::updateMarkerPose, this);
   ros::spin();
 }
 

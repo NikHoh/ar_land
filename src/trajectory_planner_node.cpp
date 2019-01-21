@@ -6,7 +6,7 @@ trajectory_planner_node::trajectory_planner_node()
   , thrust(0)
 
 {
-  ROS_INFO("Im Konstruktor des trjactory_planners");
+  ROS_INFO("Im Konstruktor des trajactory_planners");
   // initialize topics
   ros::NodeHandle n("~");
   // reads parameter with name (1) from parameter server and saves it in name (2), if not found default is (3)

@@ -190,6 +190,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
             tf_world_to_drone.getRotation().z(),
             tf_world_to_drone.getRotation().w()
             ));
+    //tf::Matrix3x3 R (tf_world_to_drone.getRotation()); //replace with
 
     R.getRPY(roll, pitch, yaw);
     //ROS_INFO("RPY: %f   %f   %f", roll, pitch, yaw);
@@ -246,7 +247,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
     tfScalar tilt_angle = z_axis.angle(a_ref);
     tfScalar tilt_angle_neg = a_ref.angle(z_axis);
 
-    // now tilt_angle is always poitive thus we need to change the sign depending on the quadrant
+    // now tilt_angle is always positive thus we need to change the sign depending on the quadrant
 
     if(tools_func::sign(x_actual.x()) == tools_func::sign(a_ref.x()) && tools_func::sign(x_actual.y()) == tools_func::sign(a_ref.y()) )
     {
@@ -276,7 +277,6 @@ tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
 
 
     tfScalar roll_ref, pitch_ref, yaw_ref;
-    tfScalar roll_test,pitch_test, yaw_test;
 /*
     R.inverse().getEulerYPR(yaw_test,pitch_test,roll_test);
     tf::Matrix3x3 R_transform;
