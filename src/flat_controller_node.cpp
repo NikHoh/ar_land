@@ -163,7 +163,7 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
-    tf::Vector3 e_x = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual;
+    tf::Vector3 e_x = prefilter*tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual;
     tf::Vector3 e_v = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs;
     //ROS_INFO("e_x: %f, %f, %f \t e_v: %f, %f, %f", e_x.x(),e_x.y(),e_x.z(), e_v.x(), e_v.y(), e_v.z());
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(e_x) + K_v*(e_v) + g_vec;
@@ -484,6 +484,10 @@ void flat_controller_node::dynamic_reconfigure_callback(
   pid_yaw.setKD(config.Kd_yaw);
   thrust_fact = config.thrust_fact;
   Ki_z = config.Ki_z;
+
+  prefilter.setX(config.Prefilter_x);
+  prefilter.setY(config.Prefilter_y);
+  prefilter.setZ(config.Prefilter_z);
 
 }
 

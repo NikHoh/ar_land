@@ -114,6 +114,7 @@ private:
   tf::Vector3 v_obs_prev;
   tf::Vector3 x_obs_prev;
   tf::Vector3 x_actual_prev;
+  tf::Vector3 prefilter;
 
   ros::Time prev_time;
   ros::Time prev_time_ctrl;
