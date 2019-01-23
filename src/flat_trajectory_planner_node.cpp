@@ -181,7 +181,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     // set 0.5m above world frame as takeoff goal
     x_f = 0.3;
     y_f = 0.3;
-    z_f = 0.7;
+    z_f = 1.7;
 
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
@@ -571,32 +571,32 @@ bool flat_trajectory_planner_node::goal_change(ar_land::goal_change::Request& re
   {
   case 1:
   {
-    x_f = x_f-0.1;
+    x_f = x_f-0.4;
   }
     break;
   case 2:
   {
-    x_f = x_f+0.1;
+    x_f = x_f+0.4;
   }
     break;
   case 3:
   {
-    y_f = y_f-0.1;
+    y_f = y_f-0.4;
   }
     break;
   case 4:
   {
-    y_f = y_f+0.1;
+    y_f = y_f+0.4;
   }
     break;
   case 5:
   {
-    z_f = z_f-0.1;
+    z_f = z_f-0.4;
   }
     break;
   case 6:
   {
-    z_f = z_f+0.1;
+    z_f = z_f+0.4;
   }
     break;
   default:
