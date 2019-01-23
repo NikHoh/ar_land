@@ -32,7 +32,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   flight_state_change_srv = nh.advertiseService("flight_state_change", &flat_trajectory_planner_node::state_change, this);
   goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &flat_trajectory_planner_node::goal_change, this);
 
-  goal_position_in_board.setValue(0,0,0.7);
+  goal_position_in_board.setValue(0.3,0.3,0.7);
   frequency = 100;
   run_traj = false;
   replan_traj = false;
@@ -60,7 +60,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   x_f_corr = 0;
   y_f_corr = 0;
   z_f_corr = 0;
-  land_straight = 1;
+  land_straight = false;
 
 
 }
@@ -179,9 +179,9 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     // -----------------------------------------------
 
     // set 0.5m above world frame as takeoff goal
-    x_f = 0.0;
-    y_f = 0.0;
-    z_f = 0.5;
+    x_f = 0.3;
+    y_f = 0.3;
+    z_f = 0.7;
 
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
@@ -267,7 +267,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
     else
     {
       zp_f = - 0.6;
-      z_f = z_f - 0.11;
+      z_f = z_f - 0.04;
     }
     //ROS_INFO("Set new goal to (%0.2f, %0.2f, %0.2f)", x_f, y_f, z_f);
   }  

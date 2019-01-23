@@ -163,13 +163,14 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     tf::Vector3 g_vec;
     g_vec.setValue(0,0,9.81);
-    tf::Vector3 e_x = prefilter*tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position) - x_actual;
+    tf::Vector3 x_setpoint  = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.position);
+    tf::Vector3 e_x = prefilter* x_setpoint - x_actual;  // Vorfilter macht funktioniert nicht mit I Anteil, dieser müsste parallel geschalten sein
     tf::Vector3 e_v = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.twist) - v_obs;
     //ROS_INFO("e_x: %f, %f, %f \t e_v: %f, %f, %f", e_x.x(),e_x.y(),e_x.z(), e_v.x(), e_v.y(), e_v.z());
     a_ref = tools_func::convertToTFVector3(posVelAcc_goal_in_world_msg.acc)+ K_x*(e_x) + K_v*(e_v) + g_vec;
 
     float anti_wind = 1;
-    integral_part_z += (e_x.getZ() - wind_up*anti_wind/(thrust_fact*0.043))*dt;
+    integral_part_z += ((x_setpoint - x_actual).getZ() - wind_up*anti_wind/(thrust_fact*0.043))*dt;
 
     tf::StampedTransform tf_world_to_drone;
     try{
@@ -182,14 +183,15 @@ void flat_controller_node::iteration(const ros::TimerEvent& e)
 
     //tf::Matrix3x3 R = tf::Matrix3x3(tf_world_to_drone.getRotation());
     tfScalar roll, pitch, yaw;
+    /*
     tf::Matrix3x3 R = tf::Matrix3x3(
           tf::Quaternion(
             tf_world_to_drone.getRotation().x(),
             tf_world_to_drone.getRotation().y(),
             tf_world_to_drone.getRotation().z(),
             tf_world_to_drone.getRotation().w()
-            ));
-    //tf::Matrix3x3 R (tf_world_to_drone.getRotation()); //replace with
+            )); */
+    tf::Matrix3x3 R(tf_world_to_drone.getRotation()); //replace with
 
     R.getRPY(roll, pitch, yaw);
     //ROS_INFO("RPY: %f   %f   %f", roll, pitch, yaw);
@@ -281,7 +283,7 @@ tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
     tf::Matrix3x3 R_transform;
     R_transform.setEulerYPR(yaw_test,0,0);
     R_ref = R_transform*R_ref;
-    printRotation(R_transform);
+    tools_func::printRotation(R_transform);
 */
     R_ref.getEulerYPR(yaw_ref, pitch_ref, roll_ref);
 
@@ -297,7 +299,7 @@ tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
 
     //-------------------------------------------------------------------------
 
-      //printRotation(v_matrix);
+      //tools_func::printRotation(v_matrix);
       //ROS_INFO("pitch_ref: %f     roll_ref: %f", pitch_ref,roll_ref);
 
       tf::StampedTransform tf_world_to_goal_pose;
@@ -437,11 +439,11 @@ void flat_controller_node::getActualPosVel(const ros::TimerEvent& e){
   float l1 = 0.588;
   float l2 = 3.03;
   x_obs = (1-l1)*x_obs_prev + dt*v_obs_prev + dt*dt*0.5*0.0*imuData + l1*x_actual_prev;  // eventuell modifizierten Beobachter implementieren
-  v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;  // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
+  //v_obs = v_obs_prev + dt*0.0*imuData+l2*x_actual-l2*x_obs_prev;  // Außerdem stimmen Koordinatensysteme der einzelnen komponenten gar nicht überein, oben geändert
 
 
   // alternative as simple differentiation with low pass filter
-  /*
+
   tf::Vector3 v_obs_unfiltered;
   float alpha = 0.3;
 if(dt>0)
@@ -452,7 +454,7 @@ if(dt>0)
   else
   {
     v_obs = tf::Vector3(0.0,0.0,0.0);
-}*/
+}
   x_actual_prev = x_actual;
   v_obs_prev = v_obs;
   x_obs_prev = x_obs;
@@ -543,9 +545,7 @@ tf::Matrix3x3 fuseRotation(tf::Transform tf_by_imu, tf::Transform tf_by_tracking
   return fusedRotation;
 }
 
-void printRotation(tf::Matrix3x3 matr){
-  ROS_INFO("Rotation :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",matr[0].getX(),matr[0].getY(),matr[0].getZ(),matr[1].getX(),matr[1].getY(),matr[1].getZ(),matr[2].getX(),matr[2].getY(),matr[2].getZ());
-}
+
 
 int main(int argc, char **argv)
 {
