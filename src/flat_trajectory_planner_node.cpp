@@ -18,13 +18,18 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   n.param<std::string>("board_frame_id", board_frame_id, "board_c3po");
   n.param<std::string>("cam_frame_id", cam_frame_id, "/cam");
   n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/pose_goal_in_world_topic");
-
+  n.param<std::string>("goal_pos_topic", goal_pos_topic, "/ar_land/goal_pos_topic");
+  n.param<std::string>("goal_vel_topic", goal_vel_topic, "/ar_land/goal_vel_topic");
+  n.param<std::string>("goal_acc_topic", goal_acc_topic, "/ar_land/goal_acc_topic");
   // Subscribers
   //T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &flat_trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
   control_out_sub = nh.subscribe("/crazyflie/imu", 1, &flat_trajectory_planner_node::getImuAccelZ, this);
   obs_posVelAcc_sub = nh.subscribe("obs_posVelAcc_topic", 1, &flat_trajectory_planner_node::receiveObserverData, this);
   // Publishers
   goal_posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>(goal_posVelAcc_topic, 1);
+  goal_pos_pub = nh.advertise<geometry_msgs::Vector3>(goal_pos_topic, 1);
+  goal_vel_pub = nh.advertise<geometry_msgs::Vector3>(goal_vel_topic, 1);
+  goal_acc_pub = nh.advertise<geometry_msgs::Vector3>(goal_acc_topic, 1);
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // states that pose_goal_in_world_pub publishes to topic (1)
 
@@ -114,6 +119,9 @@ control_out_pub.publish(msg);
     tf::vector3TFToMsg(accel_goal_in_world,posVelAcc_in_world.acc);
 
     goal_posVelAcc_pub.publish(posVelAcc_in_world);
+    goal_pos_pub.publish(posVelAcc_in_world.position); // only neccessary for matlab plots
+    goal_vel_pub.publish(posVelAcc_in_world.twist); // only neccessary for matlab plots
+    goal_acc_pub.publish(posVelAcc_in_world.acc); // only neccessary for matlab plots
 
     if(replan_traj)
     {
@@ -484,13 +492,14 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
 
         //t_prev = t;
       }
-
+if(flight_state == Landing)
+  ROS_INFO("diff_z: %f:   accel_z: %f:", last_accel_z-accel_z, accel_z);
 
       if(flight_state == Landing && (z_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
       {
         //ROS_INFO("%f",std::abs(last_accel_z-accel_z));
         // "hear" for the bump
-        ROS_INFO("diff_z: %f: ", last_accel_z-accel_z);
+
         if(accel_z-last_accel_z>3&&accel_z>0.2)
         {
           ROS_INFO("Bump detected");
