@@ -2,7 +2,8 @@
 
 
 flat_trajectory_planner_node::flat_trajectory_planner_node()
-  : flight_state(Idle)
+  : flight_state(Idle),
+    board_moving(true)
 
 
 {
@@ -66,6 +67,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   y_f_corr = 0;
   z_f_corr = 0;
   land_straight = false;
+  latenz = ros::Time::now();
 
 
 }
@@ -97,6 +99,7 @@ control_out_pub.publish(msg);
     nh.setParam("/ar_land/flat_controller_node/resetPID", true);
 control_out_pub.publish(msg);
     ROS_INFO("State change to Idle");
+    ROS_INFO("Latenz seit Bump: %f: ", ros::Time::now().toSec()-latenz.toSec());
   }
     break;
   case Automatic:
@@ -187,9 +190,9 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     // -----------------------------------------------
 
     // set 0.5m above world frame as takeoff goal
-    x_f = 0.3;
-    y_f = 0.3;
-    z_f = 1.7;
+    x_f = 1;
+    y_f = 1;
+    z_f = 1;
 
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
@@ -286,7 +289,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.325; // [m/s]
+    float vel = 0.5;//325; // [m/s]
     if(!traj_started)
     {          
       //t_prev = 0;
@@ -300,6 +303,8 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       ypp_0 = 0.0;
       zp_0 = 0.0;
       zpp_0 = 0.0;
+      x_f_prev = x_f;
+      y_f_prev = y_f;
 
 
       // actual position of drone as start point for trajectory when landing
@@ -343,7 +348,15 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       z_f_corr = vector.z();
       // ----------------------------------------------------------------
       }
-      T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
+      float distance =  tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length();
+      if(distance > 2.5)
+        vel = vel*2;
+      else if (distance > 1.5)
+        vel = vel*1.5;
+
+      T = distance/vel;
+
+
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
       ROS_INFO("End Traj: \t %f, %f, %f", x_f, y_f, z_f);
     }
@@ -493,7 +506,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
         //t_prev = t;
       }
 if(flight_state == Landing)
-  ROS_INFO("diff_z: %f:   accel_z: %f:", last_accel_z-accel_z, accel_z);
+  ROS_INFO("diff_z: %f:   accel_z: %f:", accel_z-last_accel_z, accel_z);
 
       if(flight_state == Landing && (z_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
       {
@@ -512,7 +525,17 @@ if(flight_state == Landing)
       {
         traj_finished = true;
       }
-      T = T - t;
+      if(!board_moving){
+       T = T - t;
+      }else{
+        float alpha = -0.9;
+        if(pow(x_out-x_f,2)+pow(y_out-y_f,2)>pow(x_out-x_f_prev,2) + pow(y_out-y_f_prev,2)){
+          alpha = 1.0;
+        }
+        T = T- t + alpha*10*(pow(x_f-x_f_prev,2) +  pow(y_f-y_f_prev,2));
+      }
+      x_f_prev = x_f;
+      y_f_prev = y_f;
     } // !traj_finished
 
     if(traj_finished) // published desired position vel and acc as long as another traj is demanded to let the drone hover (maybe not really neccessary cause once the final data are published once everything is okay
@@ -524,6 +547,8 @@ if(flight_state == Landing)
       ar_land::flight_state_changeResponse res;
       if(flight_state == Landing)
       {
+        ROS_INFO("Landing done. --> State change to Idle");
+latenz = ros::Time::now();
         req.flight_state = 0; // Idle
       }
       else

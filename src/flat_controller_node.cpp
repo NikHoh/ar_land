@@ -377,6 +377,16 @@ tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
       */
 
   }
+  else // if controller_enabled is false
+  {
+    geometry_msgs::Twist control_out;
+    control_out.linear.x = 0;
+    control_out.linear.y = 0;
+    control_out.linear.z = 0;
+    control_out.angular.z =  0;
+
+    control_out_pub.publish(control_out);
+  }
 
   nh.getParam("/ar_land/flat_controller_node/resetPID", resetPID);
   if(resetPID)

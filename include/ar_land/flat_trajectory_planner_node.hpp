@@ -134,8 +134,10 @@ private:
   double  x_f_corr, y_f_corr, z_f_corr;
 
   float T;
+  ros::Time latenz;
 
-
+  bool board_moving;
+  double x_f_prev,y_f_prev;
 
 
 };
