@@ -64,6 +64,7 @@ private:
   ros::Publisher control_error_pub;
   ros::Publisher obs_posVelAcc_pub;
   ros::Publisher controller_debug_pub;
+  ros::Publisher obs_vel_pub;
 
 
   // Variables
@@ -114,9 +115,13 @@ private:
   tf::Vector3 v_obs_prev;
   tf::Vector3 x_obs_prev;
   tf::Vector3 x_actual_prev;
+  tf::Vector3 prefilter;
 
   ros::Time prev_time;
   ros::Time prev_time_ctrl;
+
+
+
 
 
 

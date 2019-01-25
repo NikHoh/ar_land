@@ -60,6 +60,10 @@ private:
   // Publisher
   ros::Publisher pose_goal_in_world_pub;
   ros::Publisher goal_posVelAcc_pub;
+  // extra goal publisher to be able to use standard msg and read data in matlab
+  ros::Publisher goal_pos_pub;
+  ros::Publisher goal_vel_pub;
+  ros::Publisher goal_acc_pub;
 
 
   // Services
@@ -80,6 +84,9 @@ private:
   std::string T_cam_board_topic;
   std::string pose_goal_in_world_topic;
   std::string goal_posVelAcc_topic;
+  std::string goal_pos_topic;
+  std::string goal_vel_topic;
+  std::string goal_acc_topic;
   ros::Publisher control_out_pub;
   ros::Subscriber control_out_sub;
   State flight_state;
@@ -91,6 +98,7 @@ private:
   bool replan_traj;
   bool traj_started;
   bool traj_finished;
+  bool land_straight;
 
   bool calc_traj_with_real_values;
 
@@ -123,10 +131,13 @@ private:
   double x_f, y_f, z_f;
   double xp_f, yp_f, zp_f;
   double xpp_f, ypp_f, zpp_f;
+  double  x_f_corr, y_f_corr, z_f_corr;
 
   float T;
+  ros::Time latenz;
 
-
+  bool board_moving;
+  double x_f_prev,y_f_prev;
 
 
 };

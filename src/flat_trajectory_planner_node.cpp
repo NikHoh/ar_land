@@ -2,7 +2,8 @@
 
 
 flat_trajectory_planner_node::flat_trajectory_planner_node()
-  : flight_state(Idle)
+  : flight_state(Idle),
+    board_moving(false)
 
 
 {
@@ -18,13 +19,18 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   n.param<std::string>("board_frame_id", board_frame_id, "board_c3po");
   n.param<std::string>("cam_frame_id", cam_frame_id, "/cam");
   n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/pose_goal_in_world_topic");
-
+  n.param<std::string>("goal_pos_topic", goal_pos_topic, "/ar_land/goal_pos_topic");
+  n.param<std::string>("goal_vel_topic", goal_vel_topic, "/ar_land/goal_vel_topic");
+  n.param<std::string>("goal_acc_topic", goal_acc_topic, "/ar_land/goal_acc_topic");
   // Subscribers
   //T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &flat_trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
   control_out_sub = nh.subscribe("/crazyflie/imu", 1, &flat_trajectory_planner_node::getImuAccelZ, this);
   obs_posVelAcc_sub = nh.subscribe("obs_posVelAcc_topic", 1, &flat_trajectory_planner_node::receiveObserverData, this);
   // Publishers
   goal_posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>(goal_posVelAcc_topic, 1);
+  goal_pos_pub = nh.advertise<geometry_msgs::Vector3>(goal_pos_topic, 1);
+  goal_vel_pub = nh.advertise<geometry_msgs::Vector3>(goal_vel_topic, 1);
+  goal_acc_pub = nh.advertise<geometry_msgs::Vector3>(goal_acc_topic, 1);
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // states that pose_goal_in_world_pub publishes to topic (1)
 
@@ -32,7 +38,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   flight_state_change_srv = nh.advertiseService("flight_state_change", &flat_trajectory_planner_node::state_change, this);
   goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &flat_trajectory_planner_node::goal_change, this);
 
-  goal_position_in_board.setValue(0,0,0.7);
+  goal_position_in_board.setValue(0.3,0.3,0.7);
   frequency = 100;
   run_traj = false;
   replan_traj = false;
@@ -57,6 +63,11 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   T = 0;
   last_accel_z = 0;
   accel_z = 0;
+  x_f_corr = 0;
+  y_f_corr = 0;
+  z_f_corr = 0;
+  land_straight = false;
+  latenz = ros::Time::now();
 
 
 }
@@ -82,11 +93,13 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     msg.angular.x = 0;
     msg.angular.y = 0;
     msg.angular.z = 0;
-    control_out_pub.publish(msg);
+control_out_pub.publish(msg);
     nh.setParam("/ar_land/flat_controller_node/controller_enabled", false);
     nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
     nh.setParam("/ar_land/flat_controller_node/resetPID", true);
+control_out_pub.publish(msg);
     ROS_INFO("State change to Idle");
+    ROS_INFO("Latenz seit Bump: %f: ", ros::Time::now().toSec()-latenz.toSec());
   }
     break;
   case Automatic:
@@ -110,6 +123,7 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
 
     goal_posVelAcc_pub.publish(posVelAcc_in_world);
 
+
     if(replan_traj)
     {
       ROS_INFO("Will replan trajectory");
@@ -120,7 +134,8 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
 
 
     // test for using PID Controllers
-    nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
+    /*
+nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     geometry_msgs::TransformStamped T_world_goal_msg;
     geometry_msgs::PoseStamped pose_goal_in_world_msg;
     tf::StampedTransform world_to_goal_tf;
@@ -134,7 +149,7 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
-
+*/
 
     // -----------------------------------------------
 
@@ -145,7 +160,7 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     ROS_INFO("State change to TakeOff");
 
     // test for using PID Controllers
-
+    /*
     tf::StampedTransform tf_world_to_drone;
     try{
       tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
@@ -168,14 +183,14 @@ bool flat_trajectory_planner_node::state_change(ar_land::flight_state_changeRequ
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
-
+    */
 
     // -----------------------------------------------
 
     // set 0.5m above world frame as takeoff goal
-    x_f = 0.0;
-    y_f = 0.0;
-    z_f = 0.5;
+    x_f = 0.5;
+    y_f = -0.5;
+    z_f = 2.0;
 
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
@@ -248,9 +263,21 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
   //double latency_time = ros::Time::now().toSec(); // for debugging purposes
   if(flight_state == Landing)
   {
-    zp_f = - 0.3;
+
     updateGoalPos(); // sets the current board position as goal position
-    z_f = z_f - 0.08;
+
+    if(land_straight)
+    {
+    z_f = z_f + z_f_corr;
+    x_f = x_f + x_f_corr;
+    y_f = y_f + y_f_corr;
+    zp_f = 0;
+    }
+    else
+    {
+      zp_f = - 0.6;
+      z_f = z_f - 0.04;
+    }
     //ROS_INFO("Set new goal to (%0.2f, %0.2f, %0.2f)", x_f, y_f, z_f);
   }
   else
@@ -260,7 +287,15 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.2; // [m/s]
+    tf::StampedTransform tf_world_to_drone;
+    try{
+      tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+    }
+    catch(tf::TransformException &ex)
+    {
+      ROS_INFO("No Transformation from World to Drone found");
+    }
+    float vel = 0.5;//325; // [m/s]  travel velocity
     if(!traj_started)
     {
       //t_prev = 0;
@@ -274,30 +309,50 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       ypp_0 = 0.0;
       zp_0 = 0.0;
       zpp_0 = 0.0;
+      x_f_prev = x_f;
+      y_f_prev = y_f;
 
 
       // actual position of drone as start point for trajectory when landing
       if(flight_state == TakingOff)
       {
-        tf::StampedTransform tf_world_to_drone;
-        try{
-          tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
-        }
-        catch(tf::TransformException &ex)
-        {
-          ROS_INFO("No Transformation from World to Drone found");
-        }
-        x_0 = tf_world_to_drone.getOrigin().x();
-        y_0 = tf_world_to_drone.getOrigin().y();
-        z_0 = tf_world_to_drone.getOrigin().z();
-      }
+
+      x_0 = tf_world_to_drone.getOrigin().x();
+      y_0 = tf_world_to_drone.getOrigin().y();
+      z_0 = tf_world_to_drone.getOrigin().z();
+}
       else // if not TakingOff
       {
-        x_0 = x_f_old;
-        y_0 = y_f_old;
-        z_0 = z_f_old;
+      x_0 = x_f_old;
+      y_0 = y_f_old;
+      z_0 = z_f_old;
+      // ----------------------------------------------------------------
+      // try to assign a end position that is not on the ground but beneath
+
+      double delta_x = -tf_world_to_drone.getOrigin().x() + x_f;
+      double delta_y = -tf_world_to_drone.getOrigin().y() + y_f;
+      double delta_z = -tf_world_to_drone.getOrigin().z() + z_f;
+
+      tf::Vector3 vector = tf::Vector3(delta_x, delta_y, 0).normalized()*0.1;
+
+      x_f_corr = vector.x();
+      y_f_corr = vector.y();
+      z_f_corr = vector.z();
+      // ----------------------------------------------------------------
       }
-      T = tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length()/vel;
+      float distance =  tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length();
+
+      if(distance > 2.5)
+        vel = vel*2;
+      else if (distance > 1.5)
+        vel = vel*1.5;
+
+      T = distance/vel;
+
+
+      T = 0.5*2*vel*distance + 1.25; // new approachh
+
+
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
       ROS_INFO("End Traj: \t %f, %f, %f", x_f, y_f, z_f);
     }
@@ -373,6 +428,9 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       tf::vector3TFToMsg(accel_goal_in_world,posVelAcc_in_world.acc);
 
       goal_posVelAcc_pub.publish(posVelAcc_in_world); // needed for flat_controller_node
+      goal_pos_pub.publish(posVelAcc_in_world.position); // only neccessary for matlab plots
+      goal_vel_pub.publish(posVelAcc_in_world.twist); // only neccessary for matlab plots
+      goal_acc_pub.publish(posVelAcc_in_world.acc); // only neccessary for matlab plots
 
       // for debugging purposes: sendTransform from world to set trajectory point
       // -----------------------------------------------------------------------------
@@ -388,7 +446,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       // ----------------------------------------------------------------------------
 
       // test for using PID Controllers
-
+      /*
       geometry_msgs::TransformStamped T_world_goal_msg;
       geometry_msgs::PoseStamped pose_goal_in_world_msg;
       tf::StampedTransform world_to_goal_tf;
@@ -402,7 +460,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
       pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
 
-
+      */
       // -----------------------------------------------
 
 
@@ -446,14 +504,15 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
         //t_prev = t;
       }
+if(flight_state == Landing)
+  ROS_INFO("diff_z: %f:   accel_z: %f:", accel_z-last_accel_z, accel_z);
 
-
-      if(flight_state == Landing && (z_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
+      if(flight_state == Landing && (tf_world_to_drone.getOrigin().z()-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
       {
         //ROS_INFO("%f",std::abs(last_accel_z-accel_z));
         // "hear" for the bump
-        ROS_INFO("diff_z: %f: ", last_accel_z-accel_z);
-        if(accel_z-last_accel_z>0.49&&accel_z>0.2)
+
+        if(accel_z-last_accel_z>3&&accel_z>0.2)
         {
           ROS_INFO("Bump detected");
 
@@ -465,7 +524,17 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       {
         traj_finished = true;
       }
-      T = T - t;
+      if(!board_moving){
+       T = T - t;
+      }else{
+        float alpha = -0.9;
+        if(pow(x_out-x_f,2)+pow(y_out-y_f,2)>pow(x_out-x_f_prev,2) + pow(y_out-y_f_prev,2)){
+          alpha = 1.0;
+        }
+        T = T- t + alpha*10*(pow(x_f-x_f_prev,2) +  pow(y_f-y_f_prev,2));
+      }
+      x_f_prev = x_f;
+      y_f_prev = y_f;
     } // !traj_finished
 
     if(traj_finished) // published desired position vel and acc as long as another traj is demanded to let the drone hover (maybe not really neccessary cause once the final data are published once everything is okay
@@ -477,6 +546,8 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       ar_land::flight_state_changeResponse res;
       if(flight_state == Landing)
       {
+        ROS_INFO("Landing done. --> State change to Idle");
+latenz = ros::Time::now();
         req.flight_state = 0; // Idle
       }
       else
@@ -533,32 +604,32 @@ bool flat_trajectory_planner_node::goal_change(ar_land::goal_change::Request& re
   {
   case 1:
   {
-    x_f = x_f-0.1;
+    x_f = x_f-0.4;
   }
     break;
   case 2:
   {
-    x_f = x_f+0.1;
+    x_f = x_f+0.4;
   }
     break;
   case 3:
   {
-    y_f = y_f-0.1;
+    y_f = y_f-0.4;
   }
     break;
   case 4:
   {
-    y_f = y_f+0.1;
+    y_f = y_f+0.4;
   }
     break;
   case 5:
   {
-    z_f = z_f-0.1;
+    z_f = z_f-0.4;
   }
     break;
   case 6:
   {
-    z_f = z_f+0.1;
+    z_f = z_f+0.4;
   }
     break;
   default:

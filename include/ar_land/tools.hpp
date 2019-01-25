@@ -32,6 +32,11 @@ bool isIdentity(const geometry_msgs::TransformStamped &msg){
 }
 
 inline
+void printRotation(tf::Matrix3x3 matr){
+  ROS_INFO("Rotation :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",matr[0].getX(),matr[0].getY(),matr[0].getZ(),matr[1].getX(),matr[1].getY(),matr[1].getZ(),matr[2].getX(),matr[2].getY(),matr[2].getZ());
+}
+
+inline
 void convert(const geometry_msgs::Transform& trans, geometry_msgs::Pose& pose)
 {
   pose.orientation = trans.rotation;

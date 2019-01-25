@@ -4,6 +4,8 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <ar_land/flight_state_change.h>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
 
 
 
@@ -32,6 +34,11 @@ private:
   ros::ServiceServer emergency_srv_serv;
   ros::ServiceClient flight_state_change_client;
 
+  tf::TransformListener tf_lis;
+
+
+  std::string world_frame_id;
+  std::string board_frame_id;
 
 
 };
