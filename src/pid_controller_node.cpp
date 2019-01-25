@@ -112,7 +112,7 @@ void pid_controller_node::pidStart()
     nh.getParam("/ar_land/pid_controller_node/z_integral", z_integral);
     pid_x.set(0);
     pid_y.set(0);
-    pid_z.set(44500/ pid_z.ki());
+    pid_z.set(50000/ pid_z.ki());
     pid_yaw.set(0);
   }
   controller_started = true;
@@ -194,7 +194,7 @@ void pid_controller_node::dynamic_reconfigure_callback(
   //ROS_INFO("Reconfigure Request: %f %f %f", config.Kp_x, config.Ki_x, config.Kd_x);
 
   // Coefficients for the PID controller
-/*
+
   pid_x.setKP(config.Kp_x);
   pid_x.setKI(config.Ki_x);
   pid_x.setKD(config.Kd_x);
@@ -206,7 +206,7 @@ void pid_controller_node::dynamic_reconfigure_callback(
   pid_z.setKP(config.Kp_z);
   pid_z.setKI(config.Ki_z);
   pid_z.setKD(config.Kd_z);
-*/
+
 
   pid_yaw.setKP(config.Kp_yaw);
   pid_yaw.setKI(config.Ki_yaw);
