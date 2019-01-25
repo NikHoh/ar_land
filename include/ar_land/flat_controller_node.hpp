@@ -64,6 +64,7 @@ private:
   ros::Publisher control_error_pub;
   ros::Publisher obs_posVelAcc_pub;
   ros::Publisher controller_debug_pub;
+  ros::Publisher obs_vel_pub;
 
 
   // Variables

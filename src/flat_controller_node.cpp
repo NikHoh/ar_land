@@ -53,6 +53,7 @@ flat_controller_node::flat_controller_node( const std::string& world_frame_id,
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   control_error_pub = nh.advertise<geometry_msgs::Vector3>("control_error_topic", 1);
   obs_posVelAcc_pub = nh.advertise<ar_land::PosVelAcc>("obs_posVelAcc_topic", 1);
+  obs_vel_pub = nh.advertise<geometry_msgs::Vector3>("obs_vel_topic",1);
   controller_debug_pub = nh.advertise<ar_land::controller_debug>("z_controller_debug_topic",1);
 
   // Subscribers
@@ -479,6 +480,7 @@ if(dt>0)
 
 
   obs_posVelAcc_pub.publish(posVelAcc_in_world);
+  obs_vel_pub.publish(posVelAcc_in_world.twist);
 
 }
 

@@ -188,9 +188,9 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     // -----------------------------------------------
 
     // set 0.5m above world frame as takeoff goal
-    x_f = 1;
-    y_f = 1;
-    z_f = 1;
+    x_f = 0.5;
+    y_f = -0.5;
+    z_f = 2.0;
 
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
@@ -287,6 +287,14 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
+    tf::StampedTransform tf_world_to_drone;
+    try{
+      tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+    }
+    catch(tf::TransformException &ex)
+    {
+      ROS_INFO("No Transformation from World to Drone found");
+    }
     float vel = 0.5;//325; // [m/s]  travel velocity
     if(!traj_started)
     {          
@@ -308,14 +316,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       // actual position of drone as start point for trajectory when landing
       if(flight_state == TakingOff)
       {
-      tf::StampedTransform tf_world_to_drone;
-      try{
-        tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
-      }
-      catch(tf::TransformException &ex)
-      {
-        ROS_INFO("No Transformation from World to Drone found");
-      }
+
       x_0 = tf_world_to_drone.getOrigin().x();
       y_0 = tf_world_to_drone.getOrigin().y();
       z_0 = tf_world_to_drone.getOrigin().z();
@@ -327,14 +328,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       z_0 = z_f_old;
       // ----------------------------------------------------------------
       // try to assign a end position that is not on the ground but beneath
-      tf::StampedTransform tf_world_to_drone;
-      try{
-        tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
-      }
-      catch(tf::TransformException &ex)
-      {
-        ROS_INFO("No Transformation from World to Drone found");
-      }
+
       double delta_x = -tf_world_to_drone.getOrigin().x() + x_f;
       double delta_y = -tf_world_to_drone.getOrigin().y() + y_f;
       double delta_z = -tf_world_to_drone.getOrigin().z() + z_f;
@@ -356,7 +350,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       T = distance/vel;
 
 
-      //T = 0.5*vel*distance + 1.25; // new approachh
+      T = 0.5*2*vel*distance + 1.25; // new approachh
 
 
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
@@ -513,7 +507,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
 if(flight_state == Landing)
   ROS_INFO("diff_z: %f:   accel_z: %f:", accel_z-last_accel_z, accel_z);
 
-      if(flight_state == Landing && (z_0-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
+      if(flight_state == Landing && (tf_world_to_drone.getOrigin().z()-board_position_in_world.getZ()) < 0.1) // drone is near (less than 10cm) the marker while landing
       {
         //ROS_INFO("%f",std::abs(last_accel_z-accel_z));
         // "hear" for the bump
