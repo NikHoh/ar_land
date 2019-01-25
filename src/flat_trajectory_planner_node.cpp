@@ -3,7 +3,7 @@
 
 flat_trajectory_planner_node::flat_trajectory_planner_node()
   : flight_state(Idle),
-    board_moving(true)
+    board_moving(false)
 
 
 {
@@ -122,9 +122,7 @@ control_out_pub.publish(msg);
     tf::vector3TFToMsg(accel_goal_in_world,posVelAcc_in_world.acc);
 
     goal_posVelAcc_pub.publish(posVelAcc_in_world);
-    goal_pos_pub.publish(posVelAcc_in_world.position); // only neccessary for matlab plots
-    goal_vel_pub.publish(posVelAcc_in_world.twist); // only neccessary for matlab plots
-    goal_acc_pub.publish(posVelAcc_in_world.acc); // only neccessary for matlab plots
+
 
     if(replan_traj)
     {
@@ -289,7 +287,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
 
   if(run_traj)
   {
-    float vel = 0.5;//325; // [m/s]
+    float vel = 0.5;//325; // [m/s]  travel velocity
     if(!traj_started)
     {          
       //t_prev = 0;
@@ -349,12 +347,16 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       // ----------------------------------------------------------------
       }
       float distance =  tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length();
+
       if(distance > 2.5)
         vel = vel*2;
       else if (distance > 1.5)
         vel = vel*1.5;
 
       T = distance/vel;
+
+
+      //T = 0.5*vel*distance + 1.25; // new approachh
 
 
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
@@ -432,6 +434,9 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       tf::vector3TFToMsg(accel_goal_in_world,posVelAcc_in_world.acc);
 
       goal_posVelAcc_pub.publish(posVelAcc_in_world); // needed for flat_controller_node
+      goal_pos_pub.publish(posVelAcc_in_world.position); // only neccessary for matlab plots
+      goal_vel_pub.publish(posVelAcc_in_world.twist); // only neccessary for matlab plots
+      goal_acc_pub.publish(posVelAcc_in_world.acc); // only neccessary for matlab plots
 
       // for debugging purposes: sendTransform from world to set trajectory point
       // -----------------------------------------------------------------------------
