@@ -18,6 +18,7 @@
 #include <geometry_msgs/Accel.h>
 #include <ar_land/PosVelAcc.h>
 #include <sensor_msgs/Imu.h>
+#include <nav_msgs/Path.h>
 
 
 
@@ -64,7 +65,7 @@ private:
   ros::Publisher goal_pos_pub;
   ros::Publisher goal_vel_pub;
   ros::Publisher goal_acc_pub;
-
+  ros::Publisher path_pub, drone_path_pub;
 
   // Services
   ros::ServiceServer flight_state_change_srv;
@@ -138,6 +139,7 @@ private:
 
   bool board_moving;
   double x_f_prev,y_f_prev;
+  nav_msgs::Path goal_path, drone_path;
 
 
 };

@@ -34,6 +34,8 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // states that pose_goal_in_world_pub publishes to topic (1)
 
+  path_pub = nh.advertise<nav_msgs::Path>("/goal_path",1);
+  drone_path_pub = nh.advertise<nav_msgs::Path>("/drone_path",1);
   //Services
   flight_state_change_srv = nh.advertiseService("flight_state_change", &flat_trajectory_planner_node::state_change, this);
   goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &flat_trajectory_planner_node::goal_change, this);
@@ -132,7 +134,15 @@ control_out_pub.publish(msg);
       run_traj = true;
     }
 
+  goal_path = nav_msgs::Path();
+  goal_path.header.stamp = ros::Time::now();
+  goal_path.header.frame_id = world_frame_id;
+  path_pub.publish(goal_path);
 
+  drone_path = nav_msgs::Path();
+  drone_path.header.stamp = ros::Time::now();
+  drone_path.header.frame_id = world_frame_id;
+  drone_path_pub.publish(drone_path);
     // test for using PID Controllers
     /*
 nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
@@ -215,6 +225,7 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     traj_started = false;
     traj_finished = false;
     run_traj = true;
+
   }
     break;
   case Emergency:
@@ -446,7 +457,7 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
       // ----------------------------------------------------------------------------
 
       // test for using PID Controllers
-      /*
+
       geometry_msgs::TransformStamped T_world_goal_msg;
       geometry_msgs::PoseStamped pose_goal_in_world_msg;
       tf::StampedTransform world_to_goal_tf;
@@ -460,7 +471,40 @@ tf::Vector3 T_matrix_3 = tf::Vector3(60*pow(T,2),  -24*pow(T,3),   3*pow(T,4));
 
       pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
 
-      */
+
+      if(flight_state == Landing){
+      goal_path.poses.push_back(pose_goal_in_world_msg);
+      goal_path.header.stamp = ros::Time::now();
+      goal_path.header.frame_id = world_frame_id;
+
+      //-----------------------------------------
+
+      tf::StampedTransform tf_world_to_drone;
+      try{
+        tf_lis.lookupTransform(world_frame_id, drone_frame_id, ros::Time(0), tf_world_to_drone);
+      }
+      catch(tf::TransformException &ex)
+      {
+        ROS_INFO("No Transformation from World to Drone found");
+      }
+      geometry_msgs::PoseStamped pose_drone_in_world_msg;
+      geometry_msgs::TransformStamped T_world_drone_msg;
+      //T_world_drone_msg.header.frame_id = world_frame_id;
+      //T_world_drone_msg.child_frame_id = drone_frame_id;
+      //T_world_drone_msg.transform = tf_world_to_drone;
+      tf::transformStampedTFToMsg(tf_world_to_drone, T_world_drone_msg);
+
+      tools_func::convert(T_world_drone_msg, pose_drone_in_world_msg);
+      drone_path.poses.push_back(pose_drone_in_world_msg);
+      drone_path.header.stamp = ros::Time::now();
+      drone_path.header.frame_id = world_frame_id;
+      //----------------------------------------
+
+
+      path_pub.publish(goal_path);
+      drone_path_pub.publish(drone_path);
+      }
+
       // -----------------------------------------------
 
 
