@@ -336,8 +336,8 @@ tf::Quaternion q = tf::Quaternion(tilt_vector, tilt_angle);
     controller_debug_pub.publish(ctrl_msg);
 
     geometry_msgs::Twist control_out;
-    control_out.linear.x = std::max(-18.0, std::min(18.0, pitch_ref/M_PI*180.0));  // maybe switch roll_ref and pitch_ref
-    control_out.linear.y = std::max(-18.0, std::min(18.0, roll_ref/M_PI*180.0));  // absolute min max is (-30,30)
+    control_out.linear.x = std::max(-14.0, std::min(14.0, pitch_ref/M_PI*180.0));  // maybe switch roll_ref and pitch_ref
+    control_out.linear.y = std::max(-14.0, std::min(14.0, roll_ref/M_PI*180.0));  // absolute min max is (-30,30)
     control_out.linear.z = thrust;
     control_out.angular.z =  0;//pid_yaw.update(yaw, yaw_ref);
 

@@ -198,9 +198,9 @@ nh.setParam("/ar_land/pid_controller_node/controller_enabled", true);
     // -----------------------------------------------
 
     // set 0.5m above world frame as takeoff goal
-    x_f = 0.5;
-    y_f = -0.5;
-    z_f = 2.0;
+    x_f = -1.0;
+    y_f = -1.0;
+    z_f = 1.2;
 
     nh.setParam("/ar_land/flat_controller_node/x_final_in_world", x_f);
     nh.setParam("/ar_land/flat_controller_node/y_final_in_world", y_f);
@@ -352,16 +352,16 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       // ----------------------------------------------------------------
       }
       float distance =  tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length();
-
+    /*
       if(distance > 2.5)
         vel = vel*2;
       else if (distance > 1.5)
         vel = vel*1.5;
-
+    */
       T = distance/vel;
 
 
-      T = 0.5*2*vel*distance + 1.25; // new approachh
+      T = 0.5*distance/(2*vel) + 1.25; // new approachh
 
 
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
