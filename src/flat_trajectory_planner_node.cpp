@@ -22,6 +22,7 @@ flat_trajectory_planner_node::flat_trajectory_planner_node()
   n.param<std::string>("goal_pos_topic", goal_pos_topic, "/ar_land/goal_pos_topic");
   n.param<std::string>("goal_vel_topic", goal_vel_topic, "/ar_land/goal_vel_topic");
   n.param<std::string>("goal_acc_topic", goal_acc_topic, "/ar_land/goal_acc_topic");
+  n.param<float>("mean_velocity",mean_velocity,0.5);
   // Subscribers
   //T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &flat_trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
   control_out_sub = nh.subscribe("/crazyflie/imu", 1, &flat_trajectory_planner_node::getImuAccelZ, this);
@@ -306,7 +307,7 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
     {
       ROS_INFO("No Transformation from World to Drone found");
     }
-    float vel = 0.5;//325; // [m/s]  travel velocity
+
     if(!traj_started)
     {          
       //t_prev = 0;
@@ -353,16 +354,16 @@ void flat_trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
       }
       float distance =  tf::Vector3(x_0-x_f, y_0-y_f, z_0-z_f).length();
     /*
+     * float vel;
       if(distance > 2.5)
-        vel = vel*2;
+        vel = mean_velocity*2;
       else if (distance > 1.5)
-        vel = vel*1.5;
+        vel = mean_velocity*1.5;
     */
-      T = distance/vel;
+      T = distance/mean_velocity;
 
 
-      T = 0.5*distance/(2*vel) + 1.25; // new approachh
-
+      T = 0.5*distance/(2*mean_velocity) + 1.25; // new approach ( +1.25 is acceleration and deacceleration time)
 
       ROS_INFO("Start Traj: \t %f, %f, %f", x_0, y_0, z_0);
       ROS_INFO("End Traj: \t %f, %f, %f", x_f, y_f, z_f);

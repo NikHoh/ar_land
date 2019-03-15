@@ -23,7 +23,11 @@
 
 
 
-
+/**
+ * @brief The flat_trajectory_planner_node class provides a trajectory planner that publishes trajectory points with desired velocity and acceleration.
+ *
+ * adaptable parameters in code are a mean velocity and start and endpoint of the trajectory.
+ */
 
 class flat_trajectory_planner_node
 {
@@ -117,6 +121,7 @@ private:
 
   float last_accel_z;
   float accel_z;
+  float mean_velocity; // [m/s]  travel velocity
 
   // observed velocity and acceleration
   double xp_obs, yp_obs, zp_obs;

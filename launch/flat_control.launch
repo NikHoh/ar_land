@@ -18,7 +18,7 @@
   <!--<arg name="uri" default="radio://0/120/2M/E7E7E7E701" />    Niko's Drohne -->
    <!-- <arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> Philipps Drohne -->
   <!-- <arg name="uri" default="radio://0/80/2M/E7E7E7E7E7" />  Johannes Drohne -->
-   <arg name="uri" default="radio://0/80/2M/E7E7E7E703" /> <!--Maurice Drohen -->
+   <arg name="uri" default="radio://0/80/2M/E7E7E7E703" /> <!--Maurice Drohne -->
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="use_controller" default="true"/>
   <arg name="publish_tf" default="false" />
@@ -125,10 +125,7 @@
       <remap from="cmd_vel" to="cmd_vel_teleop" />
     </node>
 
-    <!-- This node is a helper for sending commands like takeoff and langing to the crazyflie controller -->
-   <!-- <node name="crazyflie_demo_controller" pkg="crazyflie_demo" type="controller.py" output="screen"> -->
-     <!--  <param name="use_crazyflie_controller" value="$(arg use_controller)"/> -->
-   <!-- </node> -->
+
 
 <!-- This node merges the joystick command from the teleop node and the controller command -->
 <node name="merge_cmd_vel" pkg="ar_nav" type="merge_cmd_vel" output="screen">
@@ -208,7 +205,6 @@
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find crazyflie_demo)/launch/crazyflie.rviz" />
 
 
-  <!-- <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot" args="/crazyflie/cmd_vel/linear/x /crazyflie/cmd_vel/linear/y"/> -->
 
   <!-- The Crazyflie 2.0 ROS package uses the NED convention (see: https://dev.px4.io/en/tutorials/motion-capture-vicon-optitrack.html) -->
 
