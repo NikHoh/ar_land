@@ -46,7 +46,7 @@ The other packages should be in your ROS distribution.
 
 Also the custom firmware for the crazyflie is required:
 
-- [crazyflie_firmware](https://github.com/NikHoh/crazyflie-firmware): link to bitcraze site
+- [crazyflie_firmware](https://github.com/NikHoh/crazyflie-firmware): branch dev_get_full_state_estimate
 
 ## Optional Dependencies
 
