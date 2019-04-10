@@ -5,6 +5,8 @@ A ROS package for autonomously landing a quadrocopter (Crazyflie 2.0) using ArUc
 The system obtains an image from a wireless camera attached to the Crazyflie 2.0, the image is deinterlaced and the distortion is removed. Once the image is ready, the ar_sys package is used for Aruco marker detection and the relative 3D pose of the Crazyflie to the marker is estimated and published.
 A Flatness based approach is used for position control of the quadrocopter. A trajectory planner plans a trajectory, which considers the model of the quadrocopter.
 
+[![ar_land video](data/img/youtube_screenshot.png)](https://youtu.be/Da-vOCHh9II "ar_land Youtube Video demonstration")
+
 For former work see [ar_nav](https://github.com/raultron/ar_nav).
 
 # Required harware
