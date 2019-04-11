@@ -2,10 +2,17 @@
 #define TOOLS_H
 
 #include <ros/ros.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf/tf.h>
 
 namespace tools_func {
 
-
+tf::Vector3 convertToTFVector3(geometry_msgs::Vector3 vec)
+{
+  tf::Vector3 out;
+  out.setValue(vec.x,vec.y,vec.z);
+  return out;
+}
 
 bool isIdentity(const geometry_msgs::TransformStamped &msg){
   bool transIsId = false;
@@ -22,6 +29,11 @@ bool isIdentity(const geometry_msgs::TransformStamped &msg){
 
   return rotIsId&&transIsId;
 
+}
+
+inline
+void printRotation(tf::Matrix3x3 matr){
+  ROS_INFO("Rotation :[ %f , %f , %f ; %f , %f , %f ; %f , %f , %f ]",matr[0].getX(),matr[0].getY(),matr[0].getZ(),matr[1].getX(),matr[1].getY(),matr[1].getZ(),matr[2].getX(),matr[2].getY(),matr[2].getZ());
 }
 
 inline
@@ -55,6 +67,23 @@ void convert(const geometry_msgs::PoseStamped& pose, geometry_msgs::TransformSta
   convert(pose.pose, trans.transform);
   trans.header = pose.header;
 }
+
+int sign(double a)
+{
+  if(a > 0)
+  {
+    return 1;
+  }
+  else if(a == 0)
+  {
+      return 0;
+  }
+  else
+  {
+  return -1;
+  }
+}
+
 } // namespace tools_func
 
 #endif // TOOLS_H

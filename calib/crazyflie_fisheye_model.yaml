@@ -1,0 +1,20 @@
+image_width: 720
+image_height: 480
+camera_name: cam
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [225.016429, 0.000000, 363.139323, 0.000000, 204.819145, 232.070557, 0.000000, 0.000000, 1.000000]
+distortion_model: plumb_bob #not true, but in ros theres no real alternative
+distortion_coefficients:
+  rows: 1
+  cols: 4
+  data: [0.43654107, 0.65064917, -1.2893005, 0.62303116]  #k1,k2,k3,k4
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 1.000000]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [204.061956, 0.000000, 363.366197, 0.000000, 0.000000, 185.745528, 231.0483000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]

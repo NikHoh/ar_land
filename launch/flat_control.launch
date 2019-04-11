@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+
+<!-- Special console logger config -->
+<env name="ROSCONSOLE_CONFIG_FILE"
+       value="$(find ar_land)/config/custom_rosconsole.config"/>
+
+        <!-- read arguments -->
+        <arg name="camera_width" default="720"/>
+        <!-- 640 -->
+        <arg name="camera_height" default="480"/>
+        <!-- 480 -->
+  <arg name="camera_device" default="/dev/video1"/>
+        <arg name="camera_fps" default="30"/>
+  <arg name="camera_calibration" default="file://$(find ar_land)/calib/crazyflie_fisheye_model.yaml"/>
+        <arg name="image_undist" default="image_rect_color"/>
+  <!--<arg name="uri" default="radio://0/120/2M/E7E7E7E701" />    Niko's Drohne -->
+   <!-- <arg name="uri" default="radio://0/110/2M/E7E7E7E702" /> Philipps Drohne -->
+  <!-- <arg name="uri" default="radio://0/80/2M/E7E7E7E7E7" />  Johannes Drohne -->
+   <arg name="uri" default="radio://0/80/2M/E7E7E7E703" /> <!--Maurice Drohne -->
+  <arg name="joy_dev" default="/dev/input/js0" />
+  <arg name="use_controller" default="true"/>
+  <arg name="publish_tf" default="false" />
+  <arg name="board" default="/board_c3po" />
+  <arg name="goal_topic_name" default="/ar_land/pose_goal_in_world_topic" />
+  <arg name="controller_frame" default="/crazyflie/base_link" />
+  <arg name="controller_worldFrame" default="/world"/>
+
+        <!-- capture image -->
+        <node pkg="usb_cam" type="usb_cam_node" name="cam" output="screen" >
+                <param name="video_device" value="$(arg camera_device)" />
+                <param name="framerate" value="$(arg camera_fps)"/>
+                <param name="pixel_format" value="yuyv" />
+                <param name="image_width" value="$(arg camera_width)" />
+                <param name="image_height" value="$(arg camera_height)" />
+                <param name="camera_frame_id" value="/cam" />
+                <param name="camera_name" value= "cam"/>
+                <param name="camera_info_url" value= "$(arg camera_calibration)"/>
+        </node>
+
+
+  <!-- optimize image -->
+        <node ns="cam" pkg="tud_img_prep" type="img_prep" name="img_prep" output="screen" >
+                <param name="camera_namespace" value="/cam" />
+    <param name="deinterlace_method" value="5" />
+    <param name="equalization_method" value="0" />
+        </node>
+
+  <!-- undistort image -->
+  <node ns="cam" pkg="ar_land" type="fisheye_rectification_node" name="fisheye_rectification_node" >
+        <remap from="/image" to="/prep/cam/image_raw" />
+        <remap from="/camera_info" to="/prep/cam/camera_info" />
+        <remap from="fisheye_rectified" to="$(arg image_undist)" />
+  </node>
+
+        <!-- detect markers -->
+  <node pkg="ar_sys" type="single_board" name="ar_single_board">
+                <remap from="/camera_info" to="/cam/camera_info" />
+                <remap from="/image" to="/cam/$(arg image_undist)" />
+                <param name="image_is_rectified" type="bool" value="true"/>
+                <param name="marker_size" type="double" value="0.16"/>
+    <param name="board_config" type="string" value="$(find ar_nav)/data/$(arg board).yml"/>
+    <param name="board_frame" type="string" value="$(arg board)" />
+                <param name="draw_markers" type="bool" value="false" />
+                <param name="draw_markers_cube" type="bool" value="true" />
+                <param name="draw_markers_axis" type="bool" value="false" />
+    <param name="publish_tf" value="$(arg publish_tf)" />
+        </node>
+
+        <!-- display captured image -->
+        <!-- <node pkg="image_view" type="image_view" name="image_view" output="screen">
+                <remap from="image" to="/ar_single_board/result" />
+                <param name="autosize" type="bool" value="true" />
+        </node> -->
+
+  <!-- ...................................................................... -->
+  <!-- Launch the Crazyflie driver and add the desired crazyflie-->
+  <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch"></include>
+
+  <!-- Launch the vrpn client that receives pose information from the tracking room system -->
+  <include file="$(find ar_land)/launch/motive2ros.launch"></include>
+
+  <group ns="crazyflie">
+
+
+  <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
+    <param name="uri" value="$(arg uri)" />
+    <param name="tf_prefix" value="crazyflie" />
+    <param name="roll_trim" value="0" />
+    <param name="pitch_trim" value="0" />
+    <param name="enable_logging" value="True" />
+    <param name="use_ros_time" value="True" />
+    <param name="enable_logging_imu" value="True" />
+    <param name="enable_logging_temperature" value="True" />
+    <param name="enable_logging_magnetic_field" value="True" />
+    <param name="enable_logging_pressure" value="True" />
+    <param name="enable_logging_battery" value="True" />
+    <param name="enable_logging_packets" value="True"/>
+    <rosparam>
+    genericLogTopics: ["log_state_estimate_rpy", "log_state_estimate_quat"]
+    genericLogTopicFrequencies: [30, 30]
+    genericLogTopic_log_state_estimate_rpy_Variables: ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw"]
+    genericLogTopic_log_state_estimate_quat_Variables: ["stabilizer.qx", "stabilizer.qy", "stabilizer.qz", "stabilizer.qw"]
+    </rosparam>
+  </node>
+
+    <!-- Launch Joystick tools -->
+    <node name="joy" pkg="joy" type="joy_node" output="screen" >
+      <param name="dev" value="$(arg joy_dev)" />
+    </node>
+
+
+<!-- This node merges the joystick command from the teleop node and the controller command -->
+<node name="merge_cmd_vel" pkg="ar_nav" type="merge_cmd_vel" output="screen">
+</node>
+
+</group>
+<group ns = "ar_land" >
+    <!-- State machine node -->
+
+<!-- Note that axis IDs are those from the joystick message plus one, to be able to invert axes by specifiying either positive or negative axis numbers.-->
+<!-- Axis 2 from joy message thus has to be set as '3' or '-3'(inverted mode) below-->
+<!-- This configuration is for the Logitech Wireless Gamepad F710 -->
+<node name="joy_control" pkg="ar_land" type="joy_control" output="screen">
+  <param name="x_axis" value="4"/>
+  <param name="y_axis" value="3"/>
+  <param name="z_axis" value="2"/>
+  <param name="yaw_axis" value="1"/>
+  <param name="x_velocity_max" value="30"/>
+  <param name="y_velocity_max" value="-30"/>
+  <param name="z_velocity_max" value="60000"/>
+  <param name="yaw_velocity_max" value="-200"/>
+  <remap from="cmd_vel" to="/crazyflie/cmd_vel_teleop" />
+</node>
+
+<node name="state_admin_node" pkg="ar_land" type="state_admin_node" output="screen">
+</node>
+
+    <!-- Flat Controller node -->
+    <node name="flat_controller_node" pkg="ar_land" type="flat_controller_node" output="screen">
+      <param name="frame" value="$(arg controller_frame)" />
+      <param name="worldFrame" value="$(arg controller_worldFrame)" />
+      <param name ="controller_enabled" type="bool" value="false"/>
+      <param name = "z_integral" type = "double" value="0" />
+      <param name = "resetPID" type = "bool" value="false" />
+      <param name = "x_final_in_world" type = "double" value="0" />
+      <param name = "y_final_in_world" type = "double" value="0" />
+      <param name = "z_final_in_world" type = "double" value="0" />
+      <param name="obs_posVelAcc_topic" value="/ar_land/obs_posVelAcc_topic" />
+      <rosparam command="load" file="$(find ar_land)/config/crazyflie_track_pid.yaml" />
+      <!--rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" /-->
+      <remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
+      <remap from="goal" to="$(arg goal_topic_name)" />
+    </node>
+
+
+<!-- flat trajectory planner node-->
+<node pkg="ar_land" type="flat_trajectory_planner_node" name="flat_trajectory_planner_node" output="screen">
+<param name="T_cam_board_topic" value="/ar_single_board/transform" />
+<param name="pose_goal_in_world_topic" value="$(arg goal_topic_name)" />
+<param name="goal_posVelAcc_topic" value="/ar_land/goal_posVelAcc_topic" />
+
+<param name="world_frame_id" value="/world" />
+<param name="drone_frame_id" value="/crazyflie/base_link" />
+<param name="goal_frame_id" value="/crazyflie/goal" />
+<param name="board_frame_id" value="/board_c3po" />
+<param name="cam_frame_id" value="/cam" />
+<param name="ar_board" value="$(arg board)" />
+<remap from="cmd_vel" to="/crazyflie/cmd_vel_controller" />
+</node>
+
+
+
+        <!-- marker observer node-->
+        <node name="marker_observer_node" pkg="ar_land" type="marker_observer_node" output="screen">
+        <param name="T_cam_board_topic" value="/ar_single_board/transform" />
+        <param name="pose_goal_in_world_topic" value="$(arg goal_topic_name)" />
+        <param name="world_frame_id" value="/world" />
+        <param name="drone_frame_id" value="/crazyflie/base_link" />
+        <param name="goal_frame_id" value="/crazyflie/goal" />
+        <param name="board_frame_id" value="/board_c3po" />
+        <param name="cam_frame_id" value="/cam" />
+        <param name="ar_board" value="$(arg board)" />
+        </node>
+
+</group>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find crazyflie_demo)/launch/crazyflie.rviz" />
+
+
+
+  <!-- The Crazyflie 2.0 ROS package uses the NED convention (see: https://dev.px4.io/en/tutorials/motion-capture-vicon-optitrack.html) -->
+
+  <!-- crazyflie/baselink to camera frame static transformation (camera looking down)-->
+  <node pkg="tf" type="static_transform_publisher" name="drone_cam_tf_br" args="0 0 -0.02 0.707107 -0.707107 0 0  /crazyflie/base_link /cam 100"/>
+
+<!-- crazyflie/baselink to imu frame static transformation -->
+<node pkg="tf" type="static_transform_publisher" name="drone_imu_tf_br" args="0 0 0 0 0 0 1  /crazyflie/base_link /imu 100"/>
+
+<!-- debug transformation from world to drone-->
+<!--<node pkg="tf" type="static_transform_publisher" name="world_drone_tf_br" args="0 0 0 0 0 0 1 /world /crazyflie/base_link 100"/>-->
+
+
+ <!--debug transformation from world to board-->
+<!--<node pkg="tf" type="static_transform_publisher" name="world_board_tf_br" args="-1.1 0 0 0 0 0 1 /world /board_c3po 100"/>-->
+
+
+</launch>

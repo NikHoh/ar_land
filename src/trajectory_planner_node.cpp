@@ -1,19 +1,18 @@
-#include "ar_land/blind_trajectory_planner_node.hpp"
-#include <tf2/transform_datatypes.h>
-#include <angles/angles.h>
-#include "ar_land/tools.hpp"
+#include "ar_land/trajectory_planner_node.hpp"
 
-blind_trajectory_planner_node::blind_trajectory_planner_node()
+
+trajectory_planner_node::trajectory_planner_node()
   : flight_state(Idle)
   , thrust(0)
 
 {
-  ROS_INFO("Im Konstruktor des blind_trjactory_planners");
+  ROS_INFO("Im Konstruktor des trajactory_planners");
   // initialize topics
   ros::NodeHandle n("~");
   // reads parameter with name (1) from parameter server and saves it in name (2), if not found default is (3)
   n.param<std::string>("T_cam_board_topic", T_cam_board_topic, "/ar_single_board/transform");
-  n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/T_world_goal_topic");
+  n.param<std::string>("pose_goal_in_world_topic", pose_goal_in_world_topic, "/ar_land/pose_goal_in_world_topic");
+  n.param<std::string>("PosVelAcc_topic", PosVelAcc_topic, "/ar_land/PosVelAcc_topic");
   n.param<std::string>("world_frame_id", world_frame_id, "/world");
   n.param<std::string>("drone_frame_id", drone_frame_id, "/crazyflie/base_link");
   n.param<std::string>("goal_frame_id", goal_frame_id, "/crazyflie/goal");
@@ -21,23 +20,29 @@ blind_trajectory_planner_node::blind_trajectory_planner_node()
   n.param<std::string>("cam_frame_id", cam_frame_id, "/cam");
 
   // Subscribers
-  T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &blind_trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
-  control_out_sub = nh.subscribe("cmd_vel",1, &blind_trajectory_planner_node::getValue, this);
+  //T_cam_board_sub = nh.subscribe(T_cam_board_topic, 1, &trajectory_planner_node::setGoalinWorld, this); // subscribed zu (1) und führt bei empfangener Nachricht (3) damit aus
+  control_out_sub = nh.subscribe("cmd_vel",1, &trajectory_planner_node::getValue, this);
 
   // Publishers
   pose_goal_in_world_pub = nh.advertise<geometry_msgs::PoseStamped>(pose_goal_in_world_topic, 1); // states that pose_goal_in_world_pub publishes to topic (1)
+  PosVelAcc_pub = nh.advertise<ar_land::PosVelAcc>(PosVelAcc_topic, 1);
   control_out_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
   //Services
-  flight_state_change_srv = nh.advertiseService("flight_state_change", &blind_trajectory_planner_node::state_change, this);
-  goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &blind_trajectory_planner_node::goal_change, this);
+  flight_state_change_srv = nh.advertiseService("flight_state_change", &trajectory_planner_node::state_change, this);
+  goal_change_srv_serv = nh.advertiseService("/ar_land/goal_change", &trajectory_planner_node::goal_change, this);
 
   goal_position_in_board.setValue(0,0,0.7);
+  frequency = 50;
+  traj_started = false;
+  dt = 0;
+
+
 
 }
 
-bool blind_trajectory_planner_node::state_change(ar_land::flight_state_changeRequest &req,
-                                                 ar_land::flight_state_changeResponse  &res)
+bool trajectory_planner_node::state_change(ar_land::flight_state_changeRequest &req,
+                                           ar_land::flight_state_changeResponse  &res)
 {
   ROS_INFO("State change requested");
   flight_state = State(req.flight_state);
@@ -90,6 +95,13 @@ bool blind_trajectory_planner_node::state_change(ar_land::flight_state_changeReq
     break;
   case Landing:
   {
+
+
+    ros::NodeHandle node;
+
+    timer = node.createTimer(ros::Duration(1.0/frequency), &trajectory_planner_node::setTrajPoint, this); // start at last goal_position
+
+    /*
     nh.setParam("/ar_land/pid_controller_node/resetPID", true);
     float thrust = last_thrust;
     ros::Rate rate(10);
@@ -107,8 +119,8 @@ bool blind_trajectory_planner_node::state_change(ar_land::flight_state_changeReq
       control_out_pub.publish(control_out);
       rate.sleep();
     }
-
-    flight_state = Idle;
+    */
+    //ros::Duration(0.5).sleep();
 
 
   }
@@ -137,11 +149,79 @@ bool blind_trajectory_planner_node::state_change(ar_land::flight_state_changeReq
   return true;
 }
 
-void blind_trajectory_planner_node::getValue(const geometry_msgs::Twist &msg){
+void trajectory_planner_node::setTrajPoint(const ros::TimerEvent& e)
+{
+  float vel = 0.2; // [m/s]
+  if(!traj_started)
+  {
+    start_position_in_board = goal_position_in_board;
+    start_time = ros::Time::now();
+    traj_started = true;
+  }
+  double dt = ros::Time::now().toSec() - start_time.toSec();
+
+  static float t_d = start_position_in_board.length()/vel;
+
+  tf::Vector3 P_0 = start_position_in_board;
+  tf::Vector3 P_d = tf::Vector3(0,0,0); // desired landing position in board frame (the board itself)
+
+  double t_ratio = dt/t_d;
+
+  goal_position_in_board = P_0 + (P_d-P_0)*(3*pow(t_ratio,2) - 2*pow(t_ratio,3));
+  twist_goal_in_board = 6*(P_d-P_0)*(dt/pow(t_d,2)-pow(t_ratio,2)/t_d);
+  accel_goal_in_board = 6*(P_d-P_0)*(1/pow(t_d,2)-2*dt/pow(t_d,3));
+
+
+  if(t_ratio > 1) {
+    goal_position_in_board = P_d;
+    timer.stop();
+    timer.setPeriod(ros::Duration(0),true);
+    // the following is actually not very nice and should be done in the Landing Case
+    geometry_msgs::Twist control_out;
+    nh.setParam("/ar_land/pid_controller_node/resetPID", true);
+    nh.setParam("/ar_land/pid_controller_node/controller_enabled", false);
+    control_out.linear.z = 0;
+    control_out.linear.x = 0;
+    control_out.linear.y = 0;
+    control_out_pub.publish(control_out);
+    flight_state = Idle;
+    traj_started = false;
+    ROS_INFO("Landing accomplished");
+
+  }
+/*
+
+  tf::StampedTransform board_to_goal_tf;
+
+  board_to_goal_tf.setIdentity();
+  board_to_goal_tf.setOrigin(goal_position_in_board);
+  board_to_goal_tf.child_frame_id_ = goal_frame_id;
+  board_to_goal_tf.frame_id_ = board_frame_id;
+  board_to_goal_tf.stamp_ = ros::Time::now();
+
+  tf::StampedTransform world_to_board_tf;
+  tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf);
+
+  tf::StampedTransform world_to_goal_tf;
+
+  world_to_goal_tf.setData(world_to_board_tf*board_to_goal_tf);
+  world_to_goal_tf.frame_id_ = world_frame_id;
+  world_to_goal_tf.child_frame_id_ = goal_frame_id;
+  world_to_goal_tf.stamp_ = board_to_goal_tf.stamp_;
+
+  tf_br.sendTransform(world_to_goal_tf);
+  geometry_msgs::PoseStamped pose_goal_in_world_msg;
+  tf::transformStampedTFToMsg(world_to_goal_tf, T_world_goal_msg);
+  tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
+  pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
+*/
+}
+
+void trajectory_planner_node::getValue(const geometry_msgs::Twist &msg){
   last_thrust = msg.linear.z;
 }
 
-bool blind_trajectory_planner_node::goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res)
+bool trajectory_planner_node::goal_change(ar_land::goal_change::Request& req, ar_land::goal_change::Response& res)
 {
   ROS_INFO("Goal change requested. %d: ", (int) req.button_code);
   switch(req.button_code)
@@ -197,43 +277,45 @@ bool blind_trajectory_planner_node::goal_change(ar_land::goal_change::Request& r
 
 }
 
+void trajectory_planner_node::run(double frequency)
+{
+  ros::NodeHandle node;
+  ros::Timer timer = node.createTimer(ros::Duration(1.0/frequency), &trajectory_planner_node::setGoalinWorld, this);
+  ros::spin();
+}
 
-void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::TransformStamped &T_cam_board_msg) {
+void trajectory_planner_node::setGoalinWorld(const ros::TimerEvent& e) {
 
-  // Broadcasting T_board_cam as transform to achieve valid tf-tree (message comes from the single_board_node)
-  tf::StampedTransform T_cam_board;
-  tf::transformStampedMsgToTF(T_cam_board_msg, T_cam_board);
-  tf::StampedTransform T_board_cam;
-  T_board_cam.setData(T_cam_board.inverse());
-  T_board_cam.stamp_ = T_cam_board.stamp_;
-  T_board_cam.frame_id_ = board_frame_id;
-  T_board_cam.child_frame_id_ = cam_frame_id;
-
-  tf_br.sendTransform(T_board_cam); // broadcasts the board_to_cam_tf coming from the marker detection into the tf tree, but tf can be older (if it lost track of marker)
-
-  if(flight_state == Automatic)
-  {
+  //if(flight_state == Automatic)
+  //{
     tf::StampedTransform world_to_board_tf;
-    tf::StampedTransform cam_to_drone_tf;
     tf::StampedTransform world_to_goal_tf;
+    tf::Transform board_to_goal;
 
     try{
-      tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf); // tf which is set up in parameter server
-      tf_lis.lookupTransform(cam_frame_id, drone_frame_id, ros::Time(0), cam_to_drone_tf);     // tf which is set up in parameter server
+      tf_lis.lookupTransform(world_frame_id, board_frame_id, ros::Time(0), world_to_board_tf); // tf which comes from the camera
     }
     catch (tf::TransformException &ex) {
-      ROS_ERROR("%s",ex.what());
+
       ros::Duration(1.0).sleep();
     }
 
-    // The Goal follows ROS conventions (Z axis up, X to the right and Y to the front)
-    // We set the goal above the world coordinate frame (our marker)
+    if(!world_to_board_tf.child_frame_id_.empty())
+    {
 
-    world_to_goal_tf.setIdentity();
-    world_to_goal_tf.setOrigin(goal_position_in_board);
+    board_to_goal.setIdentity();
+
+    board_to_goal.setOrigin(goal_position_in_board);
+
+world_to_goal_tf.setData(world_to_board_tf*board_to_goal);
+
+
     world_to_goal_tf.child_frame_id_ = goal_frame_id;
     world_to_goal_tf.frame_id_ = world_frame_id;
     world_to_goal_tf.stamp_ = ros::Time::now();
+
+
+
 
     tf_br.sendTransform(world_to_goal_tf);
 
@@ -243,17 +325,45 @@ void blind_trajectory_planner_node::setGoalinWorld(const geometry_msgs::Transfor
     tools_func::convert(T_world_goal_msg, pose_goal_in_world_msg);
 
     pose_goal_in_world_pub.publish(pose_goal_in_world_msg); // neccessary for pid_controller_node
-  }
+
+    // for flat controller there are some other topics needed:
+
+// TODO: twist goal in world -- topic und sub killen
+    //postition_in_goal vel und acc in world umrechnen
+    // in neue msgs stecken
+    // publishen für Flat controller
+
+tf::Vector3 position_in_world;
+tf::Vector3 twist_in_world;
+tf::Vector3 accel_in_world;
+
+position_in_world = world_to_board_tf.getBasis()*goal_position_in_board;
+twist_in_world = world_to_board_tf.getBasis()*twist_goal_in_board;
+accel_in_world = world_to_board_tf.getBasis()*accel_goal_in_board;
+
+ar_land::PosVelAcc posVelAcc_in_world;
+
+tf::vector3TFToMsg(position_in_world,posVelAcc_in_world.position);
+tf::vector3TFToMsg(position_in_world,posVelAcc_in_world.twist);
+tf::vector3TFToMsg(position_in_world,posVelAcc_in_world.acc);
+
+
+PosVelAcc_pub.publish(posVelAcc_in_world);
+    }
+  //}
+
 }
 
 
 int main(int argc, char** argv) {
 
-  ros::init(argc, argv, "blind_trajectory_planner_node"); // initializes node named blind_trajectory_planner_node
+  ros::init(argc, argv, "trajectory_planner_node"); // initializes node named trajectory_planner_node
 
   ros::NodeHandle n("~");
-  blind_trajectory_planner_node node;                // Creates trajectory_planner_node
-  ros::spin();
+  trajectory_planner_node node;                // Creates trajectory_planner_node
+  double frequency = 30; // TODO frequency okay?
+  node.run(frequency);
+
 
   return 0;
 }
