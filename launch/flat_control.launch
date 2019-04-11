@@ -198,12 +198,7 @@
 <!-- crazyflie/baselink to imu frame static transformation -->
 <node pkg="tf" type="static_transform_publisher" name="drone_imu_tf_br" args="0 0 0 0 0 0 1  /crazyflie/base_link /imu 100"/>
 
-<!-- debug transformation from world to drone-->
-<!--<node pkg="tf" type="static_transform_publisher" name="world_drone_tf_br" args="0 0 0 0 0 0 1 /world /crazyflie/base_link 100"/>-->
 
-
- <!--debug transformation from world to board-->
-<!--<node pkg="tf" type="static_transform_publisher" name="world_board_tf_br" args="-1.1 0 0 0 0 0 1 /world /board_c3po 100"/>-->
 
 
 </launch>
