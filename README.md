@@ -9,8 +9,9 @@ A Flatness based approach is used for position control of the quadrocopter. A tr
 
 For former work see [ar_nav](https://github.com/raultron/ar_nav).
 
-# Required harware
+# Required hardware
 - Crazyflie 2.0 with a wireless camera attached to the bottom.
+- global positioning system that delivers the pose of the drone (we used an OptiTrack system)
 
 
 ## Dependencies (non-native)
@@ -20,8 +21,10 @@ This package relies on several ROS packages:
 - [tud_img_prep](https://github.com/raultron/tud_img_prep): The tud_image_prep package is a set of tools for processing camera images with techniques that include deinterlace of analog images and filtering.
 - [ar_sys](https://github.com/raultron/ar_sys): For Aruco marker 3D pose estimation. In essence this can be replaced by any other marker.
 - [crazyflie_ros](https://github.com/whoenig/crazyflie_ros): Official package for sending commands and receiving sensor information from the Crazyflie 2.0.  The package
-contains core drivers to use the Crazyflie with ROS, a URDF model of the quadrotor, a simple navigation to goal if it is known
+contains core drivers to use the Crazyflie with ROS, a URDF model of the quadrotor, a simple navigation to goal if it knows
 the external position and different demos ready to run for Crazyflie.
+
+- [vrpn_client_ros](https://github.com/ros-drivers/vrpn_client_ros): Package for receiving the pose delivered by the optical tracking system. 
 
 In the src directory of your ROS catking workspace:
 ```
